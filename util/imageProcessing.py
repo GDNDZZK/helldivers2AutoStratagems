@@ -2,10 +2,149 @@ import os
 import mss
 import mss.tools
 from PIL import Image
-import numpy as np
+from collections import deque
 
-from PIL import Image
-import os
+def rotate_left_90(matrix):
+    # 反转每一行
+    reversed_rows = [row[::-1] for row in matrix]
+    # 转置并转换为列表的列表
+    rotated = [list(row) for row in zip(*reversed_rows)]
+    return rotated
+
+# 遍历arrow下所有图片
+arrow_data = {
+    'W' : [],
+    'A' : [],
+    'S' : [],
+    'D' : []
+}
+for filename in os.listdir('./arrow'):
+    # 转换为二维数组放入w_arrow_list
+    img = Image.open('./arrow/' + filename).convert('L')
+    img_array = list(img.getdata())
+    img_array = [img_array[i:i+img.width]
+                 for i in range(0, len(img_array), img.width)]
+    arrow_data['W'].append(img_array)
+    img_array = rotate_left_90(img_array)
+    arrow_data['A'].append(img_array)
+    img_array = rotate_left_90(img_array)
+    arrow_data['S'].append(img_array)
+    img_array = rotate_left_90(img_array)
+    arrow_data['D'].append(img_array)
+
+def determine_arrow_direction(image_path):
+    img = Image.open(image_path).convert('L')
+    img_array = list(img.getdata())
+    img_array = [img_array[i:i+img.width]
+                 for i in range(0, len(img_array), img.width)]
+    # 计算匹配程度(示例数组是0的地方变成1扣2分,1的地方变成0不扣分,和原本一样加一分)
+
+    def sum_score(img_array, arrow):
+        score = 0
+        for i in range(len(img_array)):
+            for j in range(len(img_array)):
+                if img_array[i][j] == arrow[i][j]:
+                    score += 1
+                elif img_array[i][j] == 1 and arrow[i][j] == 0:
+                    score -= 1
+        return score
+    max_score = -100000
+    result = ''
+    for tag, arrow_list in arrow_data.items():
+        for arrow in arrow_list:
+            score = sum_score(img_array, arrow)
+            if score > max_score:
+                max_score = score
+                result = tag
+    if max_score < 150:
+        result = ''
+    return result
+
+
+def arrow_str(input_dir='./temp/split_images'):
+    result = ''
+    end_dirname = [i for i in os.listdir(
+        input_dir) if os.path.isdir(os.path.join(input_dir, i))][-1]
+    # 输入目录,遍历每一个子文件夹,跳过文件
+    for dirname in os.listdir(input_dir):
+        if not os.path.isdir(os.path.join(input_dir, dirname)):
+            continue
+        # 遍历子文件夹中每一个bmp文件
+        for filename in sorted(os.listdir(os.path.join(input_dir, dirname)), key=lambda x: int(os.path.splitext(x)[0])):
+            if not filename.lower().endswith('.bmp'):
+                continue
+            result += determine_arrow_direction(
+                os.path.join(input_dir, dirname, filename))
+        # 如果不是最后一行则添加换行
+        if dirname != end_dirname:
+            result += '\n'
+    # 移除最后一个换行
+    return result
+
+
+def process_images(directory='./temp/split_images', target_size=(15, 15)):
+    """
+    处理指定目录下的所有n.bmp图片,切割连续白色区域并保存到对应编号的文件夹
+
+    参数：
+    input_dir - 输入目录路径(包含0.bmp, 1.bmp等数字命名的图片)
+    target_size - 缩放目标尺寸,默认6x6像素
+    """
+
+    for filename in os.listdir(directory):
+        if not filename.endswith('.bmp'):
+            continue
+        # 创建输出文件夹
+        base_name = filename.split('.')[0]
+        output_dir = os.path.join(directory, base_name)
+        os.makedirs(output_dir, exist_ok=True)
+        # 打开并转换图像
+        img = Image.open(os.path.join(directory, filename)).convert('RGB')
+        width, height = img.size
+        pixels = img.load()
+        # 初始化访问矩阵和区域列表
+        visited = [[False for _ in range(width)] for _ in range(height)]
+        regions = []
+        # 判断白色像素（可根据实际情况调整阈值）
+        def is_white(pixel):
+            return pixel[0] > 200 and pixel[1] > 200 and pixel[2] > 200
+        # 遍历所有像素寻找连通区域
+        for y in range(height):
+            for x in range(width):
+                if not visited[y][x] and is_white(pixels[x, y]): # type: ignore
+                    # BFS遍历连通区域
+                    queue = deque()
+                    queue.append((x, y))
+                    visited[y][x] = True
+                    region_points = []
+                    while queue:
+                        x0, y0 = queue.popleft()
+                        region_points.append((x0, y0))
+                        # 检查8邻域
+                        for dx, dy in [(-1, -1), (-1, 0), (-1, 1),
+                                       (0, -1),          (0, 1),
+                                       (1, -1),  (1, 0), (1, 1)]:
+                            nx, ny = x0 + dx, y0 + dy
+                            if 0 <= nx < width and 0 <= ny < height and not visited[ny][nx] and is_white(pixels[nx, ny]): # type: ignore
+                                visited[ny][nx] = True
+                                queue.append((nx, ny))
+                    # 过滤小区域
+                    if len(region_points) >= 25:
+                        # 计算包围盒
+                        min_x = min(x for x, y in region_points)
+                        max_x = max(x for x, y in region_points)
+                        min_y = min(y for x, y in region_points)
+                        max_y = max(y for x, y in region_points)
+                        regions.append((min_x, min_y, max_x, max_y))
+        # 按从左到右、从上到下排序
+        regions.sort(key=lambda r: (r[0], r[1]))
+        # 处理每个有效区域
+        for index, (x1, y1, x2, y2) in enumerate(regions):
+            # 裁剪并缩放
+            region_img = img.crop((x1, y1, x2 + 1, y2 + 1))
+            resized_img = region_img.resize(target_size, Image.Resampling.NEAREST)
+            # 保存结果
+            resized_img.save(os.path.join(output_dir, f"{index}.bmp"))
 
 
 def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/split_images'):
@@ -78,8 +217,9 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
 
         if found_row != -1:
             # 计算裁剪区域（PIL坐标系）
-            left = found_col_end + 3 + 8 # 小列右侧,战备图标左下角小图标
-            upper = (found_row + ((e_row - found_row) / 2)) if (e_row - found_row) > 15 else  (s_row + ((e_row - s_row) / 2))# 取下半
+            left = found_col_end + 3 + 8  # 小列右侧,战备图标左下角小图标
+            upper = (found_row + ((e_row - found_row) / 2)) if (e_row -
+                                                                found_row) > 15 else (s_row + ((e_row - s_row) / 2))  # 取下半
             right = width     # PIL中右边界是exclusive
             lower = e_row + 1
 
@@ -224,4 +364,7 @@ if __name__ == "__main__":
 
     binarize_image()
     split_image()
+    process_images()
+    print(arrow_str())
     print(f'耗时: {time.time() - start_time} 秒')
+    pass
