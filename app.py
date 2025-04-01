@@ -5,10 +5,13 @@ import os
 import shutil
 import time
 from util.globalHotKeyManager import GlobalHotKeyManager
-from util.imageProcessing import arrow_str, binarize_image, crop_image, process_images, resize_image, split_image
+from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, process_images, resize_image, split_image
 from util.loadSetting import getConfigDict
 from util.SystemTrayIcon import SystemTrayIcon
-
+try:
+    from winsound import Beep
+except ModuleNotFoundError:
+    print('WARN: winsound not found, beep will not work')
 
 def checkPath():
     """确保工作路径正确"""
@@ -45,6 +48,27 @@ def run_in_thread(func):
         return thread
     return wrapper
 
+@run_in_thread
+def di(m = 0):
+    try:
+        match m:
+            case 0:
+                # 开始提示音
+                Beep(800, 100)
+            case 1:
+                # 结束提示音
+                Beep(500, 50)
+                time.sleep(0.01)
+                Beep(500, 50)
+            case 2:
+                # 警告提示音
+                Beep(400, 80)
+            case 3:
+                # 错误提示音
+                Beep(200, 1000)
+    except Exception as e:
+        print(f'beep error: {e}')
+
 
 hotkey0_is_running = False
 hotkey0_lock = threading.Lock()
@@ -53,13 +77,15 @@ def hotkey0():
     global hotkey0_is_running
     with hotkey0_lock:
         if hotkey0_is_running:
+            di(2)
             return
         hotkey0_is_running = True
     try:
-        # checkDir()
+        checkDir()
         print('===开始识别===')
         start_time = time.time()
-        # capture_screenshot()
+        capture_screenshot()
+        di()
         resize_image()
         crop_image()
 
@@ -89,9 +115,10 @@ def hotkey0():
 
         print(f'耗时: {time.time() - start_time} 秒')
         print('===识别结束===')
+        di(1)
     except Exception as e:
         print(f'识别失败: {e}')
-        raise e
+        di(3)
     finally:
         with hotkey0_lock:
             hotkey0_is_running = False
