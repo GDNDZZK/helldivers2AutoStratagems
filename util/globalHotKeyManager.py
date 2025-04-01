@@ -13,7 +13,7 @@ class GlobalHotKeyManager:
 
     def register(self, keys, callback=None):
         """注册函数,将set包含的按键组合注册为全局快捷键,传入回调函数,当按键组合被触发时执行,如果不传入回调函数,使用默认的回调函数"""
-        keys_set = {i.replace('_l','').replace('_gr','').replace('_r', '') for i in keys}
+        keys_set = [i.replace('_l','').replace('_gr','').replace('_r', '') for i in keys]
         if '' in keys_set:
             keys_set.remove('')
         keys_str = '+'.join(keys_set)
