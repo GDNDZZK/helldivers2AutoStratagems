@@ -62,7 +62,7 @@
 
 1. 这里可以设置战略配备指令默认值,当某个战备因为冷却等原因无法识别时会使用此文件下定义的指令(如果存在)
 2. 如果 `./temp/arrow.txt`不存在,按下 `ctrl`+`1~9`后会读取该文件
-3. `defaultArrow.txt`、`./temp/arrow.txt`、`./temp/arrow_original.txt`第一行对应第一个战备
+3. `defaultArrow.txt`、`./temp/arrow.txt`、`./temp/arrow_original.txt`中第N行对应第N个战备
 
 #### config.ini
 
