@@ -14,6 +14,8 @@ try:
 except ModuleNotFoundError:
     print('WARN: winsound not found, beep will not work')
 
+version = 'v0.0'
+
 def checkPath():
     """确保工作路径正确"""
     # 获取当前工作路径
@@ -202,4 +204,8 @@ def main():
 
 
 if __name__ == '__main__':
+    print(f'''helldivers2AutoStratagems {version} Copyright (C) 2025 GDNDZZK
+This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
+This is free software, and you are welcome to redistribute it under certain conditions.
+''')
     main()
