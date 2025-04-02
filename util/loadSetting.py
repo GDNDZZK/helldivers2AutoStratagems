@@ -1,7 +1,6 @@
 # -*- encoding: utf-8 -*-
 import os
 
-setting_dict = dict()
 def getConfigDict():
     """
     读取配置文件并返回一个字典
@@ -9,9 +8,6 @@ def getConfigDict():
     Returns:
     - dict
     """
-    global setting_dict
-    if setting_dict:
-        return setting_dict
     local_path = './local/config.ini'
     file_path = local_path if os.path.exists(local_path) else './config.ini'
     # 创建一个空字典
@@ -29,5 +25,4 @@ def getConfigDict():
                 # 将键值对添加到字典中
                 result[key] = value.lower()
     # 返回字典
-    setting_dict = result
     return result

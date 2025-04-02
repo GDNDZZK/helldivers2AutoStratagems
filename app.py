@@ -1,5 +1,4 @@
-
-
+#!/usr/bin/python3
 import random
 import threading
 import os
@@ -96,6 +95,8 @@ def hotkey0():
         split_image()
         process_images()
         arrow_original_s = arrow_str()
+        if len(arrow_original_s) < 8:
+            raise Exception(arrow_original_s)
         arrow_original_l = arrow_original_s.split('\n')
         with file_lock:
             with open('./temp/arrow_original.txt', 'w') as f:
@@ -107,11 +108,11 @@ def hotkey0():
         for i in range(len(arrow_original_l)):
             line = arrow_original_l[i]
             # 如果是空的,查找arrow_default_l中有没有,有就采用arrow_default_l的值
-            if not line:
+            if not line or len(line) <= 2:
                 if len(arrow_default_l) > i and arrow_default_l[i]:
                     arrow_processed_l.append(arrow_default_l[i])
                 else:
-                    arrow_processed_l.append('')
+                    arrow_processed_l.append(line)
             else:
                 arrow_processed_l.append(line)
         with file_lock:
@@ -128,9 +129,9 @@ def hotkey0():
         with hotkey0_lock:
             hotkey0_is_running = False
 
-# 随机延迟(60/300秒到60/100秒)
+# 随机延迟
 def random_sleep():
-    time.sleep(random.uniform(1/15, 1/25))
+    time.sleep(random.uniform(1/10, 1/20))
 
 keyboard = Controller()
 def press_and_release(key):

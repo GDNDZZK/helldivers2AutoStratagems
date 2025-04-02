@@ -7,7 +7,8 @@ try:
     from util.loadSetting import getConfigDict
 except ModuleNotFoundError:
     from loadSetting import getConfigDict
-config = getConfigDict()
+
+
 def rotate_left_90(matrix):
     # 反转每一行
     reversed_rows = [row[::-1] for row in matrix]
@@ -15,12 +16,13 @@ def rotate_left_90(matrix):
     rotated = [list(row) for row in zip(*reversed_rows)]
     return rotated
 
+
 # 遍历arrow下所有图片
 arrow_data = {
-    'W' : [],
-    'A' : [],
-    'S' : [],
-    'D' : []
+    'W': [],
+    'A': [],
+    'S': [],
+    'D': []
 }
 for filename in os.listdir('./arrow'):
     # 转换为二维数组放入w_arrow_list
@@ -35,6 +37,7 @@ for filename in os.listdir('./arrow'):
     arrow_data['S'].append(img_array)
     img_array = rotate_left_90(img_array)
     arrow_data['D'].append(img_array)
+
 
 def determine_arrow_direction(image_path):
     img = Image.open(image_path).convert('L')
@@ -115,7 +118,7 @@ def process_images(directory='./temp/split_images', target_size=(15, 15)):
         # 遍历所有像素寻找连通区域
         for y in range(height):
             for x in range(width):
-                if not visited[y][x] and is_white(pixels[x, y]): # type: ignore
+                if not visited[y][x] and is_white(pixels[x, y]):  # type: ignore
                     # BFS遍历连通区域
                     queue = deque()
                     queue.append((x, y))
@@ -146,7 +149,8 @@ def process_images(directory='./temp/split_images', target_size=(15, 15)):
         for index, (x1, y1, x2, y2) in enumerate(regions):
             # 裁剪并缩放
             region_img = img.crop((x1, y1, x2 + 1, y2 + 1))
-            resized_img = region_img.resize(target_size, Image.Resampling.NEAREST)
+            resized_img = region_img.resize(
+                target_size, Image.Resampling.NEAREST)
             # 保存结果
             resized_img.save(os.path.join(output_dir, f"{index}.bmp"))
 
@@ -175,64 +179,97 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
         print("未找到符合条件的列")
         return
 
-    # 在目标列中查找所有连续白像素段（高度≥15）
+    # 在目标列及其右侧两列中查找所有有效竖列
+    columns_to_check = [c for c in range(target_col, min(target_col+3, width))]
     segments = []
-    start = -1
-    for row in range(height):
-        pixel = img.getpixel((target_col, row))
-        if pixel == 255:
-            if start == -1:
-                start = row
-            # 检查是否到达底部或遇到黑像素
-            if row == height-1 or img.getpixel((target_col, row+1)) != 255:
-                if row - start + 1 >= 15:
-                    segments.append((start, row))
-                start = -1
+    for col in columns_to_check:
+        current_segments = []
+        start = -1
+        for row in range(height):
+            pixel = img.getpixel((col, row))
+            if pixel == 255:
+                if start == -1:
+                    start = row
+                # 处理行结束或遇到黑像素的情况
+                if row == height-1 or img.getpixel((col, row+1)) != 255:
+                    if row - start + 1 >= 15:
+                        current_segments.append((col, start, row))
+                    start = -1
+            else:
+                if start != -1:
+                    if (row-1) - start + 1 >= 15:
+                        current_segments.append((col, start, row-1))
+                    start = -1
+        segments.extend(current_segments)
+
+    # 按起始行排序并过滤高度相近的竖列（保留最左侧）
+    sorted_segments = sorted(segments, key=lambda x: x[1])
+    filtered_segments = []
+    current_group = []
+    for seg in sorted_segments:
+        if not current_group:
+            current_group.append(seg)
         else:
-            if start != -1:
-                if (row-1) - start + 1 >= 15:
-                    segments.append((start, row-1))
-                start = -1
+            if seg[1] - current_group[0][1] < 5:
+                current_group.append(seg)
+            else:
+                # 选择当前组中最左侧的竖列
+                filtered_segments.append(
+                    min(current_group, key=lambda x: x[0]))
+                current_group = [seg]
+    if current_group:
+        filtered_segments.append(min(current_group, key=lambda x: x[0]))
 
     # 创建保存目录
     os.makedirs(save_dir, exist_ok=True)
 
-    # 处理每个小列段
-    for idx, (s_row, e_row) in enumerate(segments):
+    # 处理每个有效竖列
+    for idx, (col, s_row, e_row) in enumerate(filtered_segments):
         found_row = -1
         found_col_end = -1
 
-        # 在行区间内查找首个符合条件的行
+        # 在竖列高度范围内寻找有效行
         for row in range(s_row, e_row + 1):
             consecutive = 0
-            # 从target_col开始向右扫描
-            for c in range(target_col, width):
+            # 从当前竖列位置向右扫描
+            for c in range(col, width):
                 if img.getpixel((c, row)) == 255:
                     consecutive += 1
                     if consecutive >= 15:
                         found_col_end = c
-                    # 继续循环直到遇到黑色像素
                 else:
-                    break  # 遇到黑色像素停止
-            # 当达到足够长度时标记位置
+                    break  # 遇到黑像素停止
+            # 确认找到足够长度的连续白像素
             if consecutive >= 15:
                 found_row = row
-                break  # 找到后跳出循环
+                break
 
         if found_row != -1:
             # 计算裁剪区域（PIL坐标系）
-            left = found_col_end + 3 + 8  # 小列右侧,战备图标左下角小图标
-            upper = (found_row + ((e_row - found_row) / 2)) if (e_row -
-                                                                found_row) > 15 else (s_row + ((e_row - s_row) / 2))  # 取下半
-            right = width     # PIL中右边界是exclusive
+            left = found_col_end + 3 + 8  # 小列右侧偏移量
+            upper_mid = (found_row + ((e_row - found_row) / 2)
+                         if (e_row - found_row) > 15
+                         else s_row + ((e_row - s_row) / 2))
+            upper = int(upper_mid)  # 取下半区域
+            right = width  # 右边界exclusive
             lower = e_row + 1
 
-            # 裁剪并保存图片
+            # 执行裁剪并保存
             cropped_img = img.crop((left, upper, right, lower))
             cropped_img.save(os.path.join(save_dir, f'{idx}.bmp'))
 
 
-def color_to_grayscale(color, threshold=30):
+def hex_to_rgb(hex_color):
+    """
+    将16位颜色代码转换为RGB格式
+    :param hex_color: 16位颜色代码,例如'#FF5733'
+    :return: RGB元组,例如(255, 87, 51)
+    """
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+
+def color_to_grayscale(color, threshold=None, target_colors = [hex_to_rgb(c) for c in '#DAC177,#DF7567,#50AFC8,#74A15F,#BEBEBE,#BAB9A1,#E4D0AA'.split(',')]):
     """
     将颜色转换为灰度值,如果颜色在指定范围内,则返回255(白色),否则返回0(黑色)。
 
@@ -240,15 +277,6 @@ def color_to_grayscale(color, threshold=30):
     color (tuple): RGB颜色值。
     threshold (int): 允许的颜色范围。
     """
-    target_colors = [
-        (218, 193, 119),
-        (223, 117, 103),
-        (80, 175, 200),
-        (116, 161, 95),
-        (190, 190, 190),
-        (186, 185, 161),
-        (228, 208, 170),
-    ]
 
     for target in target_colors:
         if all(abs(c1 - c2) <= threshold for c1, c2 in zip(color, target)):
@@ -256,7 +284,7 @@ def color_to_grayscale(color, threshold=30):
     return 0  # 黑色
 
 
-def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./temp/screenshot_binary.bmp', threshold=35):
+def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./temp/screenshot_binary.bmp', threshold=None):
     """
     将PNG图片按规则二值化并保存为BMP格式。
 
@@ -265,6 +293,10 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
     output_path (str): 保存BMP图片的路径。
     threshold (int): 颜色匹配的阈值。
     """
+    config = getConfigDict()
+    colors = [hex_to_rgb(c) for c in config['COLORS'].split(',')]
+    if threshold is None:
+        threshold = int(config['THRESHOLD'])
     try:
         # 打开图片
         with Image.open(input_path) as img:
@@ -280,7 +312,7 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
                     # 获取当前像素的颜色
                     r, g, b = img_rgb.getpixel((x, y))
                     # 将颜色转换为灰度值
-                    gray_value = color_to_grayscale((r, g, b), threshold)
+                    gray_value = color_to_grayscale((r, g, b), threshold, colors)
                     # 设置新的像素值
                     img_binary.putpixel((x, y), gray_value)
 
@@ -292,7 +324,7 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
         print(f"处理图片时发生错误: {e}")
 
 
-def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_cropped.png', left=int(config['LEFT']), top=int(config['TOP']), right=int(config['RIGHT']), bottom=int(config['BOTTOM'])):
+def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_cropped.png', left=None, top=None, right=None, bottom=None):
     """
     截取PNG图片的左上角区域并保存。
 
@@ -304,6 +336,15 @@ def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/s
     right (int): 截取区域的右边界。
     bottom (int): 截取区域的下边界。
     """
+    config = getConfigDict()
+    if left is None:
+        left = int(config['LEFT'])
+    if top is None:
+        top = int(config['TOP'])
+    if right is None:
+        right = int(config['RIGHT'])
+    if bottom is None:
+        bottom = int(config['BOTTOM'])
     # 打开图片
     with Image.open(input_path) as img:
         # 截取图片
