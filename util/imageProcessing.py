@@ -3,7 +3,11 @@ import mss
 import mss.tools
 from PIL import Image
 from collections import deque
-
+try:
+    from util.loadSetting import getConfigDict
+except ModuleNotFoundError:
+    from loadSetting import getConfigDict
+config = getConfigDict()
 def rotate_left_90(matrix):
     # 反转每一行
     reversed_rows = [row[::-1] for row in matrix]
@@ -241,7 +245,9 @@ def color_to_grayscale(color, threshold=30):
         (223, 117, 103),
         (80, 175, 200),
         (116, 161, 95),
-        (190, 190, 190)
+        (190, 190, 190),
+        (186, 185, 161),
+        (228, 208, 170),
     ]
 
     for target in target_colors:
@@ -286,7 +292,7 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
         print(f"处理图片时发生错误: {e}")
 
 
-def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_cropped.png', left=0, top=0, right=220, bottom=450):
+def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_cropped.png', left=int(config['LEFT']), top=int(config['TOP']), right=int(config['RIGHT']), bottom=int(config['BOTTOM'])):
     """
     截取PNG图片的左上角区域并保存。
 

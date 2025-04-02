@@ -1,5 +1,6 @@
 
 
+import random
 import threading
 import os
 import shutil
@@ -8,6 +9,7 @@ from util.globalHotKeyManager import GlobalHotKeyManager
 from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, process_images, resize_image, split_image
 from util.loadSetting import getConfigDict
 from util.SystemTrayIcon import SystemTrayIcon
+from pynput.keyboard import Controller, Key
 try:
     from winsound import Beep
 except ModuleNotFoundError:
@@ -69,6 +71,7 @@ def di(m = 0):
     except Exception as e:
         print(f'beep error: {e}')
 
+file_lock = threading.Lock()
 
 hotkey0_is_running = False
 hotkey0_lock = threading.Lock()
@@ -94,10 +97,11 @@ def hotkey0():
         process_images()
         arrow_original_s = arrow_str()
         arrow_original_l = arrow_original_s.split('\n')
-        with open('./temp/arrow_original.txt', 'w') as f:
-            f.write(arrow_original_s)
-        with open('./defaultArrow.txt', 'r') as f:
-            arrow_default_l = f.read().split('\n')
+        with file_lock:
+            with open('./temp/arrow_original.txt', 'w') as f:
+                f.write(arrow_original_s)
+            with open('./defaultArrow.txt', 'r') as f:
+                arrow_default_l = f.read().split('\n')
         arrow_processed_l = []
         # 遍历arrow_s每一行
         for i in range(len(arrow_original_l)):
@@ -110,8 +114,9 @@ def hotkey0():
                     arrow_processed_l.append('')
             else:
                 arrow_processed_l.append(line)
-        with open('./temp/arrow.txt', 'w') as f:
-            f.write('\n'.join(arrow_processed_l))
+        with file_lock:
+            with open('./temp/arrow.txt', 'w') as f:
+                f.write('\n'.join(arrow_processed_l))
 
         print(f'耗时: {time.time() - start_time} 秒')
         print('===识别结束===')
@@ -123,10 +128,61 @@ def hotkey0():
         with hotkey0_lock:
             hotkey0_is_running = False
 
+# 随机延迟(60/300秒到60/100秒)
+def random_sleep():
+    time.sleep(random.uniform(1/15, 1/25))
 
+keyboard = Controller()
+def press_and_release(key):
+    global keyboard
+    keyboard.press(key)
+    random_sleep()
+    keyboard.release(key)
+    random_sleep()
+
+def c(line_s : str):
+    for s in line_s:
+        if not s:
+            continue
+        match s:
+            case 'W':
+                press_and_release(Key.up)
+            case 'S':
+                press_and_release(Key.down)
+            case 'A':
+                press_and_release(Key.left)
+            case 'D':
+                press_and_release(Key.right)
+
+
+hotkeyother_is_running = False
+hotkeyother_lock = threading.Lock()
+@run_in_thread
 def hotkey_other(num: int):
-    num -= 1
-    print(f'num: {num}')
+    global hotkeyother_is_running
+    with hotkeyother_lock:
+        if hotkeyother_is_running:
+            return
+        hotkeyother_is_running = True
+    try:
+        with file_lock:
+            # 如果temp/arrow.txt存在,则读取并执行
+            if os.path.exists('./temp/arrow.txt'):
+                with open('./temp/arrow.txt', 'r') as f:
+                    arrow = f.read().split('\n')
+            # 如果不存在,则读取defaultArrow.txt
+            else:
+                with open('./defaultArrow.txt', 'r') as f:
+                    arrow = f.read().split('\n')
+        code = arrow[num - 1]
+        print(f'执行: {code}')
+        c(code)
+    except Exception as e:
+        print(f'操作失败: {e}')
+        di(2)
+    finally:
+        with hotkeyother_lock:
+            hotkeyother_is_running = False
 
 
 def main():

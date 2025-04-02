@@ -1,9 +1,4 @@
-import inspect
-import string
 from pynput import keyboard
-import warnings
-import logging
-
 
 class GlobalHotKeyManager:
     """一利用GlobalHotKeys注册全局快捷键,提供注册函数和删除函数"""
@@ -22,9 +17,7 @@ class GlobalHotKeyManager:
             self.hotkeys[keys_str] = callback if not callback is None else lambda: print(f'{keys_str} is pressed')
         except ValueError as e:
             # 如果出现ValueError异常，说明这个快捷键已经被占用，发出一个警告信息，并记录异常信息
-            warnings.warn(
-                f'{keys_str} is already registered by another program.')
-            logging.exception(e)
+            print(str(e))
             return
 
     def start(self):
@@ -33,9 +26,7 @@ class GlobalHotKeyManager:
             self.globalHotKeys = keyboard.GlobalHotKeys(self.hotkeys)
         except ValueError as e:
             # 如果出现ValueError异常，说明有些快捷键已经被占用，发出一个警告信息，并记录异常信息
-            warnings.warn(
-                'Some hotkeys are already registered by another program.')
-            logging.exception(e)
+            print(str(e))
             return
         # 启动GlobalHotKeys对象，开始监听键盘事件
         self.globalHotKeys.start()
