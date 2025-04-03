@@ -14,7 +14,7 @@ try:
 except ModuleNotFoundError:
     print('WARN: winsound not found, beep will not work')
 
-version = 'v0.0'
+version = 'v0.1.0'
 
 def checkPath():
     """确保工作路径正确"""
@@ -197,10 +197,10 @@ def main():
         hotkeyManager.register(
             [config['ACTIVATION'], str(i)], lambda x=i: hotkey_other(x))
     hotkeyManager.start()
-    # 随机选择arrow下的一张图片
     sti = SystemTrayIcon()
     sti.start()
-    pass
+    # 运行结束
+    hotkeyManager.delete()
 
 
 if __name__ == '__main__':
