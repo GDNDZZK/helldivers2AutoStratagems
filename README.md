@@ -4,7 +4,7 @@
 
 绝地潜兵2一键搓球!基于视觉识别一键自动更新战略配备指令.
 
-[演示视频...还没做](https://www.bilibili.com/video/BV)
+[演示视频](https://www.bilibili.com/video/BV1kjZSYtEwM)
 
 ## 注意
 
