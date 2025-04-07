@@ -132,16 +132,17 @@ def hotkey0():
             hotkey0_is_running = False
 
 # 随机延迟
-def random_sleep():
-    time.sleep(random.uniform(1/10, 1/20))
+def random_sleep(min: float = 0.05, max: float = 0.1) -> None:
+    time.sleep(random.uniform(min, max))
 
 keyboard = Controller()
-def press_and_release(key):
-    global keyboard
+def press_and_release(key) -> None:
+    """按下并释放一个键"""
+    global keyboard, delay
     keyboard.press(key)
-    random_sleep()
+    random_sleep(delay[0], delay[1])
     keyboard.release(key)
-    random_sleep()
+    random_sleep(delay[0], delay[1])
 
 def c(line_s : str):
     for s in line_s:
@@ -191,6 +192,8 @@ def hotkey_other(num: int):
 def main():
     checkPath()
     config = getConfigDict()
+    global delay
+    delay = (config['DELAY_MIN'], config['DELAY_MAX'])
     hotkeyManager = GlobalHotKeyManager()
     hotkeyManager.register([config['ACTIVATION'], '0'], hotkey0)
     for i in range(1, 10):
@@ -208,4 +211,5 @@ if __name__ == '__main__':
 This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
 This is free software, and you are welcome to redistribute it under certain conditions.
 ''')
+    delay = ()
     main()
