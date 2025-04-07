@@ -1,15 +1,19 @@
 import csv
 import os
+import logging
 import requests
+
 
 class StratagemCodes():
     """
     战略配备
     """
-    _offical = []  # 官方数据
-    _custom = []  # 自定义数据
-    codes = {}  # 合并后的数据
+    _offical: list  # 官方数据
+    _custom: list  # 自定义数据
+    codes: dict  # 合并后的数据
+    logger: logging.Logger
     def __init__(self, updurl: str = None, language_code: str = 'en'):
+        self.logger = logging.getLogger(self.__class__.__name__)
         try:
             response = requests.get(updurl)
             response.raise_for_status()  # 检查请求是否成功
@@ -17,19 +21,19 @@ class StratagemCodes():
             reader = csv.reader(csv_content)
             self._offical = self._dataToStratagemCodes(reader)  # 读取数据并转换为字典
         except Exception as e:
-            print(f"请求 {updurl} 时发生错误: {e}")
+            self.logger.error(f"从URL读取数据时发生错误: {e}")
             self._offical = self.getStratagemCodesFromFile("offical_Stratagem_Codes.csv")  # 使用本地文件作为备份
         self._custom = self.getStratagemCodesFromFile("custom_Stratagem_Codes.csv")  # 读取本地文件
-        print(f"官方数据: {self._offical}")
-        print(f"自定义数据: {self._custom}")
+        self.logger.info(f"读取数据成功: {self._offical}")
+        self.logger.info(f"读取自定义数据成功: {self._custom}")
         combined_codes = []
         supported_languages = True
-        print(f"当前语言: {language_code}")
+        self.logger.info(f"语言代码: {language_code}")
         # 检查是否支持指定语言
         code_info = self._offical[0] if self._offical else {}
         if language_code not in code_info:
             supported_languages = False
-            print(f"不支持语言: {language_code}，使用默认语言")
+            self.logger.info(f"不支持指定语言: {language_code}，使用默认语言")
         for code_info in self._offical:
             if supported_languages:
                 description = code_info.get(language_code, code_info.get('en', ''))
@@ -62,21 +66,21 @@ class StratagemCodes():
         result = []
         headers = None  # 初始化 headers
         for i, row in enumerate(data):
-            print(f"读取行: {row}")
+            self.logger.debug(f"读取行: {row}")
             if i == 0:  # 跳过第一行标题
                 headers = [header.strip() for header in row]
-                print(f"标题行: {headers}")
+                self.logger.debug(f"标题行: {headers}")
                 continue
             if not headers:
-                print("错误：标题行未正确初始化，无法解析数据")
+                self.logger.error("标题行未找到")
                 break
             if len(row) < len(headers):  # 确保数据行长度不小于标题行
-                print(f"数据行长度不足，跳过: {row}")
+                self.logger.debug("跳过不完整的行")
                 continue
             entry = {}
             for j, value in enumerate(row):
                 entry[headers[j]] = value.strip()  # 动态根据标题生成键值对
-            print(f"解析行: {entry}")
+            self.logger.debug(f"生成条目: {entry}")
             result.append(entry)
         return result
 
@@ -94,12 +98,12 @@ class StratagemCodes():
             with open(file_path, 'r', encoding='utf-8') as csv_file:
                 reader = csv.reader(csv_file)
                 result = self._dataToStratagemCodes(reader)  # 读取数据并转换为字典
-                print(f"读取文件 {file_path} 成功")
-                print(f"数据: {result}")
+                self.logger.debug(f"读取文件: {file_path}")
+                self.logger.debug(f"读取数据: {result}")
         except FileNotFoundError:
-            print(f"文件 {file_path} 未找到")
+            self.logger.error(f"文件 {file_path} 未找到")
         except Exception as e:
-            print(f"读取文件 {file_path} 时发生错误: {e}")
+            self.logger.error(f"读取文件时发生错误: {e}")
         return result
 
     def saveStratagemCodesToFile(self, data: list, filename: str) -> None:
@@ -115,9 +119,9 @@ class StratagemCodes():
                 writer = csv.writer(csv_file)
                 for row in data:
                     writer.writerow(row.values())
-            print(f"数据已保存到 {filename}")
+            self.logger.info(f"数据已保存到 {filename}")
         except Exception as e:
-            print(f"保存数据时发生错误: {e}")
+            self.logger.error(f"保存数据时发生错误: {e}")
         return None
 
     def addCustomCode(self, code: str, description: str) -> None:
@@ -144,5 +148,5 @@ class StratagemCodes():
             del self.codes[code]
             self.saveStratagemCodesToFile(self._custom, "custom_Stratagem_Codes.csv")
         else:
-            print(f"自定义代码 {code} 不存在")
+            self.logger.error(f"自定义代码 {code} 不存在")
         return None
