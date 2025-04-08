@@ -106,7 +106,7 @@ class StratagemCodes():
             self.logger.error(f"读取文件时发生错误: {e}")
         return result
 
-    def saveStratagemCodesToFile(self, data: list, filename: str) -> None:
+    def saveStratagemCodesToFile(self, filename: str) -> None:
         """
         将战略配备数据保存到指定文件
 
@@ -117,7 +117,7 @@ class StratagemCodes():
         try:
             with open(filename, 'w', encoding='utf-8', newline='') as csv_file:
                 writer = csv.writer(csv_file)
-                for row in data:
+                for row in self._custom:
                     writer.writerow(row.values())
             self.logger.info(f"数据已保存到 {filename}")
         except Exception as e:
@@ -134,7 +134,7 @@ class StratagemCodes():
         """
         self._custom[code] = description
         self.codes[code] = description
-        self.saveStratagemCodesToFile(self._custom, "custom_Stratagem_Codes.csv")
+        self.saveStratagemCodesToFile("custom_Stratagem_Codes.csv")
 
     def removeCustomCode(self, code: str) -> None:
         """
@@ -146,7 +146,7 @@ class StratagemCodes():
         if code in self._custom:
             del self._custom[code]
             del self.codes[code]
-            self.saveStratagemCodesToFile(self._custom, "custom_Stratagem_Codes.csv")
+            self.saveStratagemCodesToFile("custom_Stratagem_Codes.csv")
         else:
             self.logger.error(f"自定义代码 {code} 不存在")
         return None
