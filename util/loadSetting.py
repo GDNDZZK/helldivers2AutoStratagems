@@ -1,15 +1,15 @@
 # -*- encoding: utf-8 -*-
 import os
 
-def getConfigDict():
+def getConfigDict(filename: str = 'config.ini') -> dict:
     """
-    读取配置文件并返回一个字典
+    读取指定配置文件并返回一个字典
 
     Returns:
     - dict
     """
-    local_path = './local/config.ini'
-    file_path = local_path if os.path.exists(local_path) else './config.ini'
+    local_path = f'./local/{filename}'
+    file_path = local_path if os.path.exists(local_path) else f'./{filename}'
     # 创建一个空字典
     result = {}
     # 打开文件

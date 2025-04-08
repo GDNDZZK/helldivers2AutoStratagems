@@ -4,15 +4,17 @@ import threading
 import os
 import shutil
 import time
+import logging
 from util.globalHotKeyManager import GlobalHotKeyManager
 from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, process_images, resize_image, split_image
+from util.settingGUI import settingsGUI
 from util.loadSetting import getConfigDict
 from util.SystemTrayIcon import SystemTrayIcon
 from pynput.keyboard import Controller, Key
 try:
     from winsound import Beep
 except ModuleNotFoundError:
-    print('WARN: winsound not found, beep will not work')
+    logging.warning('winsound not found, beep will not work')
 
 version = 'v0.1.0'
 
@@ -20,21 +22,21 @@ def checkPath():
     """确保工作路径正确"""
     # 获取当前工作路径
     current_work_dir = os.getcwd()
-    print(f"当前工作路径：{current_work_dir}")
+    logging.debug(f"当前工作路径：{current_work_dir}")
 
     # 获取当前文件所在路径
     current_file_dir = os.path.dirname(__file__)
-    print(f"文件所在路径：{current_file_dir}")
+    logging.debug(f"文件所在路径：{current_file_dir}")
     # 如果文件所在路径末尾是(_internal),跳转到上一级
     if '_internal' == current_file_dir[-9:]:
         current_file_dir = current_file_dir[:-9]
-        print('internal')
-        print(f"文件所在路径：{current_file_dir}")
+        logging.debug('internal')
+        logging.debug(f"文件所在路径：{current_file_dir}")
 
     # 如果工作路径不是文件所在路径，切换到文件所在路径
     if current_work_dir != current_file_dir:
         os.chdir(current_file_dir)
-        print("已切换到文件所在路径。")
+        logging.debug("已切换到文件所在路径。")
 
 
 def checkDir(path='./temp'):
@@ -70,23 +72,23 @@ def di(m = 0):
                 # 错误提示音
                 Beep(200, 1000)
     except Exception as e:
-        print(f'beep error: {e}')
+        logging.debug(f'beep error: {e}')
 
 file_lock = threading.Lock()
 
-hotkey0_is_running = False
-hotkey0_lock = threading.Lock()
+hotkeyOCR_is_running = False
+hotkeyOCR_lock = threading.Lock()
 @run_in_thread
-def hotkey0():
-    global hotkey0_is_running
-    with hotkey0_lock:
-        if hotkey0_is_running:
+def hotkeyOCR():
+    global hotkeyOCR_is_running
+    with hotkeyOCR_lock:
+        if hotkeyOCR_is_running:
             di(2)
             return
-        hotkey0_is_running = True
+        hotkeyOCR_is_running = True
     try:
         checkDir()
-        print('===开始识别===')
+        logging.debug('===开始识别===')
         start_time = time.time()
         capture_screenshot()
         di()
@@ -121,27 +123,29 @@ def hotkey0():
             with open('./temp/arrow.txt', 'w') as f:
                 f.write('\n'.join(arrow_processed_l))
 
-        print(f'耗时: {time.time() - start_time} 秒')
-        print('===识别结束===')
+        logging.debug(f'耗时: {time.time() - start_time} 秒')
+        logging.debug('===识别结束===')
         di(1)
     except Exception as e:
-        print(f'识别失败: {e}')
+        logging.debug(f'识别失败: {e}')
         di(3)
     finally:
-        with hotkey0_lock:
-            hotkey0_is_running = False
+        with hotkeyOCR_lock:
+            hotkeyOCR_is_running = False
+
 
 # 随机延迟
-def random_sleep():
-    time.sleep(random.uniform(1/10, 1/20))
+def random_sleep(min: float = 0.05, max: float = 0.1) -> None:
+    time.sleep(random.uniform(min, max))
 
 keyboard = Controller()
-def press_and_release(key):
-    global keyboard
+def press_and_release(key) -> None:
+    """按下并释放一个键"""
+    global keyboard, config
     keyboard.press(key)
-    random_sleep()
+    random_sleep(config['DELAY_MIN'], config['DELAY_MAX'])
     keyboard.release(key)
-    random_sleep()
+    random_sleep(config['DELAY_MIN'], config['DELAY_MAX'])
 
 def c(line_s : str):
     for s in line_s:
@@ -178,34 +182,63 @@ def hotkey_other(num: int):
                 with open('./defaultArrow.txt', 'r') as f:
                     arrow = f.read().split('\n')
         code = arrow[num - 1]
-        print(f'执行: {code}')
+        logging.debug(f'执行: {code}')
         c(code)
     except Exception as e:
-        print(f'操作失败: {e}')
+        logging.debug(f'操作失败: {e}')
         di(2)
     finally:
         with hotkeyother_lock:
             hotkeyother_is_running = False
 
 
+config = None
 def main():
     checkPath()
+    global config
     config = getConfigDict()
     hotkeyManager = GlobalHotKeyManager()
-    hotkeyManager.register([config['ACTIVATION'], '0'], hotkey0)
+    GUI = settingsGUI(config, hotkeyManager)
+    hotkeyManager.register([config['ACTIVATION'], '-'], hotkeyOCR)
+    hotkeyManager.register([config['ACTIVATION'], '='], GUI.open_settings_gui)
     for i in range(1, 10):
         hotkeyManager.register(
             [config['ACTIVATION'], str(i)], lambda x=i: hotkey_other(x))
     hotkeyManager.start()
-    sti = SystemTrayIcon()
+    sti = SystemTrayIcon(GUI)
     sti.start()
     # 运行结束
     hotkeyManager.delete()
 
 
 if __name__ == '__main__':
-    print(f'''helldivers2AutoStratagems {version} Copyright (C) 2025 GDNDZZK
+    logging.basicConfig(
+    level=logging.DEBUG,  # 设置全局日志级别为 DEBUG
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # 控制台输出
+        logging.FileHandler('log.txt', mode='w', encoding='utf-8')  # 保存到文件
+    ])
+
+    # 设置文件日志的级别为 INFO
+    file_handler = logging.FileHandler('log.txt', mode='w', encoding='utf-8')
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    # 设置控制台日志的级别为 DEBUG
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    # 获取根日志器并添加处理器
+    logger = logging.getLogger()
+    logger.handlers = []  # 清空默认处理器
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    logging.debug(f'''helldivers2AutoStratagems {version} Copyright (C) 2025 GDNDZZK
 This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
 This is free software, and you are welcome to redistribute it under certain conditions.
 ''')
+
+    logging.debug('===开始===')
     main()
