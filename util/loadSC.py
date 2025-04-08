@@ -10,7 +10,7 @@ class StratagemCodes():
     """
     _offical: list  # 官方数据
     _custom: list  # 自定义数据
-    codes: dict  # 合并后的数据
+    codes: list  # 合并后的数据
     logger: logging.Logger
     def __init__(self, updurl: str = None, language_code: str = 'en'):
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -55,13 +55,13 @@ class StratagemCodes():
 
     def _dataToStratagemCodes(self, data: list) -> list:
         """
-        将读取的数据转换为战略配备代码字典
+        将读取的数据转换为战略配备代码列表
 
         Args:
         - data: 读取的数据列表
 
         Returns:
-        - dict
+        - list[dict]
         """
         result = []
         headers = None  # 初始化 headers
@@ -132,9 +132,33 @@ class StratagemCodes():
         - key: 战略配备代码
         - value: 战略配备描述
         """
-        self._custom[code] = description
-        self.codes[code] = description
-        self.saveStratagemCodesToFile("custom_Stratagem_Codes.csv")
+        is_official = False
+        for code_info in self._offical:
+            if code_info['codes'] == code:
+                is_official = True
+                break
+        if is_official:
+            self.logger.error(f"自定义代码 {code} 已存在于官方数据中")
+            return None
+        is_update = False
+        for code_info in self._custom:
+            if code_info["codes"] == code:
+                self.logger.warning(f"自定义代码 {code} 已存在, 进行更新")
+                self._custom[code]["local"] = description
+                break
+        if not is_update:
+            self._custom.append({"codes": code, "local": description})
+        is_update = False
+        for code_info in self.codes:
+            if code_info[0] == code:
+                self.logger.warning(f"自定义代码 {code} 已存在, 进行更新")
+                code_info[1] = description
+                is_update = True
+                break
+        if not is_update:
+            self.codes.append([code, description])
+        self.logger.info(f"添加自定义代码 {code}: {description}")
+        return None
 
     def removeCustomCode(self, code: str) -> None:
         """
@@ -143,10 +167,19 @@ class StratagemCodes():
         Args:
         - key: 战略配备代码
         """
-        if code in self._custom:
-            del self._custom[code]
-            del self.codes[code]
-            self.saveStratagemCodesToFile("custom_Stratagem_Codes.csv")
-        else:
+        is_remove = False
+        for code_info in self._custom:
+            if code_info["codes"] == code:
+                self._custom.remove(code_info)
+                self.logger.info(f"删除自定义代码 {code}")
+                is_remove = True
+                break
+        for code_info in self.codes:
+            if code_info[0] == code:
+                self.codes.remove(code_info)
+                self.logger.info(f"删除自定义代码 {code}")
+                break
+        self.saveStratagemCodesToFile("custom_Stratagem_Codes.csv")
+        if not is_remove:
             self.logger.error(f"自定义代码 {code} 不存在")
         return None
