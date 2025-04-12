@@ -220,29 +220,73 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
     if current_group:
         filtered_segments.append(min(current_group, key=lambda x: x[0]))
 
+    # 小列补全
+    # 计算小列平均高度
+    avg_height = sum([seg[2] - seg[1] for seg in filtered_segments]) / len(filtered_segments)
+    new_filtered_segments = []
+    spacings = []
+    idx_temp = 0
+    # 记录补全的idx
+    idx_ext_list = []
+    # 从第二个开始遍历小列,如果和上一个小列的间距大于小列平均高度,则在中间插入一个小列
+    for idx, (col, s_row, e_row) in enumerate(filtered_segments):
+        # 跳过第一个
+        if idx == 0:
+            new_filtered_segments.append((col, s_row, e_row))
+            continue
+        prev_col, prev_s_row, prev_e_row = filtered_segments[idx - 1]
+        spacing = s_row - prev_e_row
+        if spacing > avg_height:
+            # 根据spacings计算平均间隔,如果不存在默认为9
+            avg_spacing = sum(spacings) / len(spacings) if spacings else 9
+            # 计算能插几个小列(小列高度+平均间隔)
+            num_inserted = int(spacing / (avg_height + avg_spacing))
+            # 插入小列
+            for i in range(num_inserted):
+                idx_temp += 1
+                idx_ext_list.append(idx_temp)
+                # 取整
+                s_new = int(prev_e_row + ((i + 1) * avg_spacing) + (i * avg_height))
+                e_new = s_new + int(avg_height) - 1
+                new_filtered_segments.append((col, s_new, e_new))
+        else:
+            idx_temp += 1
+            spacings.append(spacing)
+        new_filtered_segments.append((col, s_row, e_row))
+    filtered_segments = new_filtered_segments
+
     # 创建保存目录
     os.makedirs(save_dir, exist_ok=True)
 
+    found_col_end_list = []
     # 处理每个有效竖列
     for idx, (col, s_row, e_row) in enumerate(filtered_segments):
         found_row = -1
         found_col_end = -1
 
-        # 在竖列高度范围内寻找有效行
-        for row in range(s_row, e_row + 1):
-            consecutive = 0
-            # 从当前竖列位置向右扫描
-            for c in range(col, width):
-                if img.getpixel((c, row)) == 255:
-                    consecutive += 1
-                    if consecutive >= 15:
-                        found_col_end = c
-                else:
-                    break  # 遇到黑像素停止
-            # 确认找到足够长度的连续白像素
-            if consecutive >= 15:
-                found_row = row
-                break
+        # 如果不在idx_ext_list中,在竖列高度范围内寻找有效行
+        if not idx in idx_ext_list:
+            for row in range(s_row -1, e_row + 2):
+                consecutive = 0
+                # 从当前竖列位置向右扫描
+                for c in range(col + 1, width):
+                    if img.getpixel((c, row)) == 255:
+                        consecutive += 1
+                        if consecutive >= 15:
+                            found_col_end = c
+                    else:
+                        break  # 遇到黑像素停止
+                # 确认找到足够长度的连续白像素
+                if consecutive >= 15:
+                    found_row = row
+                    break
+            if found_col_end != -1:
+                found_col_end_list.append(found_col_end)
+        else:
+            # 如果是补全的小列
+            # 第一行作为小行,用之前小行的平均宽度
+            found_col_end = int(sum(found_col_end_list) / len(found_col_end_list)) if found_col_end_list else 32
+            found_row = s_row
 
         if found_row != -1:
             # 计算裁剪区域（PIL坐标系）

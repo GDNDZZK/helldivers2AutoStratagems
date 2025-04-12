@@ -1,3 +1,5 @@
+    
+
 # helldivers2AutoStratagems
 
 [![GitHub license](https://img.shields.io/github/license/GDNDZZK/helldivers2AutoStratagems.svg)](https://github.com/GDNDZZK/helldivers2AutoStratagems/blob/master/LICENSE) ![Python版本](https://img.shields.io/badge/python-3.10%2B-yellow)
@@ -92,7 +94,7 @@
 * [X] 使用config.ini调参
 * [X] 可设置的按键触发速度
 * [X] 带鱼屏导致缩放后战备面板过小 #2
-* [ ] 虚线边框的战备无法识别 #3
+* [X] 虚线边框的战备无法识别 #3
 * [ ] 干扰器优化模式(每次按下战备先识别后触发,不等待输出临时文件提高识别速度)
 * [ ] 可设置的战备指令按键(小键盘问题 #3)
 * [ ] UI弧度修正(感觉好麻烦,摸了)
