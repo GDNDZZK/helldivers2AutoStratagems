@@ -229,7 +229,7 @@ key_dict['<>>'] = KeyCode.from_vk(190)
 key_dict['>'] = KeyCode.from_vk(190)
 key_dict['.'] = KeyCode.from_vk(190)
 
-key_vk_dict = {v: k for k, v in key_dict.items() if '+' not in k and '<' in k and '>' in k}
+key_vk_dict = {v.vk: k for k, v in key_dict.items() if '+' not in k and '<' in k and '>' in k}
 
 def vk_to_key_str(vk_code : int) -> str:
     return key_vk_dict[vk_code]
@@ -289,8 +289,8 @@ class GlobalHotKeyManager:
         if not other_func is None:
             self.other_func = other_func
         activation_keys = config['ACTIVATION'].split('+')
-        ocr_keys = ['-']
-        setting_keys = ['=']
+        ocr_keys = config.get('OCRKEY','-').split('+')
+        setting_keys = config.get('SETTINGKEY','-').split('+')
         other_keys = [
             ['1'],
             ['2'],
