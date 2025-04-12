@@ -16,7 +16,7 @@ try:
 except ModuleNotFoundError:
     logging.warning('winsound not found, beep will not work')
 
-version = 'v0.1.0'
+version = 'dev'
 
 def checkPath():
     """确保工作路径正确"""
@@ -142,12 +142,16 @@ keyboard = Controller()
 def press_and_release(key) -> None:
     """按下并释放一个键"""
     global keyboard, config
+    delay_min, delay_max = float(config['DELAY_MIN']), float(config['DELAY_MAX'])
     keyboard.press(key)
-    random_sleep(config['DELAY_MIN'], config['DELAY_MAX'])
+    random_sleep(delay_min, delay_max)
     keyboard.release(key)
-    random_sleep(config['DELAY_MIN'], config['DELAY_MAX'])
+    random_sleep(delay_min, delay_max)
 
 def c(line_s : str):
+    # 更新config
+    global config
+    config = getConfigDict()
     for s in line_s:
         if not s:
             continue
@@ -185,30 +189,25 @@ def hotkey_other(num: int):
         logging.debug(f'执行: {code}')
         c(code)
     except Exception as e:
-        logging.debug(f'操作失败: {e}')
+        logging.debug(f'操作失败: {num} {e}')
         di(2)
     finally:
         with hotkeyother_lock:
             hotkeyother_is_running = False
 
 
-config = None
 def main():
     checkPath()
     global config
     config = getConfigDict()
     hotkeyManager = GlobalHotKeyManager()
     GUI = settingsGUI(config, hotkeyManager)
-    hotkeyManager.register([config['ACTIVATION'], '-'], hotkeyOCR)
-    hotkeyManager.register([config['ACTIVATION'], '='], GUI.open_settings_gui)
-    for i in range(1, 10):
-        hotkeyManager.register(
-            [config['ACTIVATION'], str(i)], lambda x=i: hotkey_other(x))
+    hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
     hotkeyManager.start()
     sti = SystemTrayIcon(GUI)
     sti.start()
     # 运行结束
-    hotkeyManager.delete()
+    hotkeyManager.stop()
 
 
 if __name__ == '__main__':
