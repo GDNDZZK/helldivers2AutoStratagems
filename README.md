@@ -1,5 +1,3 @@
-    
-
 # helldivers2AutoStratagems
 
 [![GitHub license](https://img.shields.io/github/license/GDNDZZK/helldivers2AutoStratagems.svg)](https://github.com/GDNDZZK/helldivers2AutoStratagems/blob/master/LICENSE) ![Python版本](https://img.shields.io/badge/python-3.10%2B-yellow)
@@ -100,4 +98,4 @@
 * [ ] UI弧度修正(感觉好麻烦,摸了)
 * [ ] 实时显示状态可交互的网页(咕咕咕咕)
 * [ ] 自动搓游戏机(我不知道有啥意义)
-* [ ] 自定义设置单按键激活(咕咕咕咕咕)
+* [X] 自定义设置单按键激活(其实 `ACTIVATION=`后面空的就行)
