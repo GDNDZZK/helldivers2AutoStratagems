@@ -311,18 +311,21 @@ class GlobalHotKeyManager:
 
 
 class KeyboardListener:
-    def __init__(self, function, scanningFrequency=128):
+    def __init__(self, function = lambda x:None, scanningFrequency=128, on_press_function = lambda x:None, on_release_function = lambda x:None):
         self.function = function  # 要执行的函数
         self.scanningFrequency = scanningFrequency  # 上报频率
         self.press_key_set = set()
         self.stop_event = threading.Event()
         self.listener_thread = None
         self.scanner_thread = None
+        self.on_press_function = on_press_function
+        self.on_release_function = on_release_function
 
     @run_in_thread
     def on_press(self, key, _):
         # 记录按下的键
         self.press_key_set.add(key.vk)
+        self.on_press_function(t)
 
     @run_in_thread
     def on_release(self, key, _):
@@ -334,6 +337,7 @@ class KeyboardListener:
             # 清除set
             logging.warning("发生错误,清空按键")
             self.press_key_set.clear()
+        self.on_release_function(t)
 
     def start_listener(self):
         # 使用with语句创建一个键盘监听器，监听键盘按键按下和释放事件
@@ -343,10 +347,13 @@ class KeyboardListener:
             while not self.stop_event.is_set():
                 time.sleep(0.01)  # 检查停止事件
 
+    old_press_key_set = set()
     def start_scanner(self):
         while not self.stop_event.is_set():
             time.sleep(1 / float(self.scanningFrequency))
-            self.function(self.press_key_set)
+            if self.press_key_set != self.old_press_key_set:
+                self.old_press_key_set = self.press_key_set.copy()
+                self.function(self.press_key_set)
 
     def start(self):
         self.listener_thread = threading.Thread(target=self.start_listener)
