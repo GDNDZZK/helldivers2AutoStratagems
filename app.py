@@ -5,7 +5,8 @@ import os
 import shutil
 import time
 import logging
-from util.globalHotKeyManager import GlobalHotKeyManager
+from util.Util import run_in_thread
+from util.globalHotKeyManager import GlobalHotKeyManager,key_dict
 from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, process_images, resize_image, split_image
 from util.settingGUI import settingsGUI
 from util.loadSetting import getConfigDict
@@ -45,13 +46,6 @@ def checkDir(path='./temp'):
         shutil.rmtree(path)
     os.makedirs(path)
 
-
-def run_in_thread(func):
-    def wrapper(*args, **kwargs):
-        thread = threading.Thread(target=func, args=args, kwargs=kwargs)
-        thread.start()
-        return thread
-    return wrapper
 
 @run_in_thread
 def di(m = 0):
@@ -142,7 +136,7 @@ keyboard = Controller()
 def press_and_release(key) -> None:
     """按下并释放一个键"""
     global keyboard, config
-    delay_min, delay_max = float(config['DELAY_MIN']), float(config['DELAY_MAX'])
+    delay_min, delay_max = float(config.get('DELAY_MIN',0.05)), float(config.get('DELAY_MAX',0.1))
     keyboard.press(key)
     random_sleep(delay_min, delay_max)
     keyboard.release(key)
@@ -157,13 +151,13 @@ def c(line_s : str):
             continue
         match s:
             case 'W':
-                press_and_release(Key.up)
+                press_and_release(key_dict[config.get("W",'<up>')])
             case 'S':
-                press_and_release(Key.down)
+                press_and_release(key_dict[config.get("S",'<down>')])
             case 'A':
-                press_and_release(Key.left)
+                press_and_release(key_dict[config.get("A",'<left>')])
             case 'D':
-                press_and_release(Key.right)
+                press_and_release(key_dict[config.get("D",'<right>')])
 
 
 hotkeyother_is_running = False
