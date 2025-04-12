@@ -60,7 +60,7 @@ def saveConfigDict(config: dict, filename: str = 'config.ini') -> None:
             result += line + '\n'
     # 如果有未替换的设置，则添加到result中
     # 先判断是否有未替换的设置,如果有添加注释
-    if len(config) - len(replaced_keys) > 0:
+    if len([i for i in config.keys() if i not in replaced_keys]) > 0:
         result += '\n;自动生成设置\n;Auto generated settings\n'
     for key, value in config.items():
         if key not in replaced_keys:

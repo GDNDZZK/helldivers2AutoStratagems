@@ -356,7 +356,7 @@ def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/s
 
 def resize_image(input_path='./temp/screenshot.png', output_path='./temp/screenshot_resized.png'):
     """
-    缩放PNG图片到1280x720并保存。
+    等比例地将PNG图片的高度缩放到720像素并保存。
 
     参数:
     input_path (str): 读取PNG图片的路径。
@@ -366,13 +366,9 @@ def resize_image(input_path='./temp/screenshot.png', output_path='./temp/screens
     with Image.open(input_path) as img:
         # 计算新的尺寸，保持宽高比
         original_width, original_height = img.size
-        aspect_ratio = original_width / original_height
-        new_width = 1280
-        new_height = int(new_width / aspect_ratio)
-        # 如果计算出的高度大于720，则调整高度并重新计算宽度
-        if new_height > 720:
-            new_height = 720
-            new_width = int(new_height * aspect_ratio)
+        aspect_ratio = original_height / original_width
+        new_height = 720
+        new_width = int(new_height / aspect_ratio)
         # 调整图片尺寸
         try:
             resized_img = img.resize((new_width, new_height), Image.LANCZOS)
