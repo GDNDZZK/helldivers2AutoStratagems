@@ -139,11 +139,6 @@ for i in range(65, 91):
     key_dict[f'<{t}>'] = KeyCode.from_vk(i)
     key_dict[t.upper()] = KeyCode.from_vk(i)
     key_dict[f'<{t.upper()}>'] = KeyCode.from_vk(i)
-    t = t.lower()
-    key_dict[t] = KeyCode.from_vk(i)
-    key_dict[f'<{t}>'] = KeyCode.from_vk(i)
-    key_dict[t.upper()] = KeyCode.from_vk(i)
-    key_dict[f'<{t.upper()}>'] = KeyCode.from_vk(i)
 # 0~9
 for i in range(48, 58):
     t = str(i - 48)
@@ -234,6 +229,16 @@ key_dict['<>>'] = KeyCode.from_vk(190)
 key_dict['>'] = KeyCode.from_vk(190)
 key_dict['.'] = KeyCode.from_vk(190)
 
+key_vk_dict = {v: k for k, v in key_dict.items() if '+' not in k and '<' in k and '>' in k}
+
+def vk_to_key_str(vk_code : int) -> str:
+    return key_vk_dict[vk_code]
+
+def vks_to_key_str(vk_codes : list|set) -> str:
+    vk_codes = set(vk_codes)
+    result = '+'.join([vk_to_key_str(vk_code) for vk_code in vk_codes])
+    return result
+
 class GlobalHotKeyManager:
     """一利用GlobalHotKeys注册全局快捷键,提供注册函数和删除函数"""
 
@@ -283,12 +288,26 @@ class GlobalHotKeyManager:
             self.setting_func = setting_func
         if not other_func is None:
             self.other_func = other_func
-        self.register([config['ACTIVATION'], '-'], self.ocr_func)
-        self.register([config['ACTIVATION'], '='], self.setting_func)
-        for i in range(1, 10):
-            self.register(
-                [config['ACTIVATION'], str(i)], lambda x=i: self.other_func(x))
-        self.register([config['ACTIVATION'], '0'], lambda: self.other_func(10))
+        activation_keys = config['ACTIVATION'].split('+')
+        ocr_keys = ['-']
+        setting_keys = ['=']
+        other_keys = [
+            ['1'],
+            ['2'],
+            ['3'],
+            ['4'],
+            ['5'],
+            ['6'],
+            ['7'],
+            ['8'],
+            ['9'],
+            ['0'],
+        ]
+
+        self.register(activation_keys + ocr_keys, self.ocr_func)
+        self.register(activation_keys + setting_keys, self.setting_func)
+        for i in range(1, 11):
+            self.register(activation_keys + other_keys[i - 1], lambda x=i: self.other_func(x))
 
 
 class KeyboardListener:
