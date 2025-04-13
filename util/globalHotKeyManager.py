@@ -297,6 +297,8 @@ class GlobalHotKeyManager:
         for i in range(1, 11):
             for keys in config.get(f'SKEY{i}',f'<ctrl_l>+<{i}>|<ctrl_r>+<{i}>').split('|'):
                 self.register(keys.split('+'), lambda x=i: self.other_func(x))
+            for keys in config.get(f'SKEYANDOCR{i}',f'<f{i}>').split('|'):
+                self.register(keys.split('+'), lambda x=i: self.other_func(x, True))
 
 
 class KeyboardListener:

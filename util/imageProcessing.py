@@ -39,8 +39,9 @@ for filename in os.listdir('./arrow'):
     arrow_data['D'].append(img_array)
 
 
-def determine_arrow_direction(image_path):
-    img = Image.open(image_path).convert('L')
+def determine_arrow_direction(image_path = '' , img = None):
+    if not img:
+        img = Image.open(image_path).convert('L')
     img_array = list(img.getdata())
     img_array = [img_array[i:i+img.width]
                  for i in range(0, len(img_array), img.width)]
@@ -88,11 +89,70 @@ def arrow_str(input_dir='./temp/split_images'):
     # 移除最后一个换行
     return result
 
+def arrow_str_fast(imgss):
+    result = ''
+    for idx, imgs in enumerate(imgss):
+        if imgs is None:
+            result += '\n'
+            continue
+        for img in imgs:
+            result += determine_arrow_direction(img=img)
+        if idx != len(imgss) - 1:
+            result += '\n'
+    return result
 
-# def process_images_core(img, target_size=(15, 15)):
-    
+def process_images_core(img, target_size=(15, 15)):
+    imgs = []
+    if img is None:
+        return imgs
+    width, height = img.size
+    pixels = img.load()
+    # 初始化访问矩阵和区域列表
+    visited = [[False for _ in range(width)] for _ in range(height)]
+    regions = []
+    # 判断白色像素
+    def is_white(pixel):
+        return pixel > 200
+    # 遍历所有像素寻找连通区域
+    for y in range(height):
+        for x in range(width):
+            if not visited[y][x] and is_white(pixels[x, y]):  # type: ignore
+                # BFS遍历连通区域
+                queue = deque()
+                queue.append((x, y))
+                visited[y][x] = True
+                region_points = []
+                while queue:
+                    x0, y0 = queue.popleft()
+                    region_points.append((x0, y0))
+                    # 检查8邻域
+                    for dx, dy in [(-1, -1), (-1, 0), (-1, 1),
+                                   (0, -1),          (0, 1),
+                                   (1, -1),  (1, 0), (1, 1)]:
+                        nx, ny = x0 + dx, y0 + dy
+                        if 0 <= nx < width and 0 <= ny < height and not visited[ny][nx] and is_white(pixels[nx, ny]): # type: ignore
+                            visited[ny][nx] = True
+                            queue.append((nx, ny))
+                # 过滤小区域
+                if len(region_points) >= 25:
+                    # 计算包围盒
+                    min_x = min(x for x, y in region_points)
+                    max_x = max(x for x, y in region_points)
+                    min_y = min(y for x, y in region_points)
+                    max_y = max(y for x, y in region_points)
+                    regions.append((min_x, min_y, max_x, max_y))
+    # 按从左到右、从上到下排序
+    regions.sort(key=lambda r: (r[0], r[1]))
+    # 处理每个有效区域
+    for index, (x1, y1, x2, y2) in enumerate(regions):
+        # 裁剪并缩放
+        region_img = img.crop((x1, y1, x2 + 1, y2 + 1))
+        resized_img = region_img.resize(
+            target_size, Image.Resampling.NEAREST)
+        imgs.append(resized_img)
+    return imgs
 
-def process_images(directory='./temp/split_images', target_size=(15, 15), fast_mode = False, imgs = None):
+def process_images(directory='./temp/split_images', target_size=(15, 15), fast_mode = False, imgs:list = []):
     """
     处理指定目录下的所有n.bmp图片,切割连续白色区域并保存到对应编号的文件夹
 
@@ -100,62 +160,26 @@ def process_images(directory='./temp/split_images', target_size=(15, 15), fast_m
     input_dir - 输入目录路径(包含0.bmp, 1.bmp等数字命名的图片)
     target_size - 缩放目标尺寸,默认6x6像素
     """
-
-    for filename in os.listdir(directory):
-        if not filename.endswith('.bmp'):
-            continue
-        # 创建输出文件夹
-        base_name = filename.split('.')[0]
-        output_dir = os.path.join(directory, base_name)
-        os.makedirs(output_dir, exist_ok=True)
-        # 打开并转换图像
-        img = Image.open(os.path.join(directory, filename)).convert('L')
-        width, height = img.size
-        pixels = img.load()
-        # 初始化访问矩阵和区域列表
-        visited = [[False for _ in range(width)] for _ in range(height)]
-        regions = []
-        # 判断白色像素（可根据实际情况调整阈值）
-        def is_white(pixel):
-            return pixel[0] > 200 and pixel[1] > 200 and pixel[2] > 200
-        # 遍历所有像素寻找连通区域
-        for y in range(height):
-            for x in range(width):
-                if not visited[y][x] and is_white(pixels[x, y]):  # type: ignore
-                    # BFS遍历连通区域
-                    queue = deque()
-                    queue.append((x, y))
-                    visited[y][x] = True
-                    region_points = []
-                    while queue:
-                        x0, y0 = queue.popleft()
-                        region_points.append((x0, y0))
-                        # 检查8邻域
-                        for dx, dy in [(-1, -1), (-1, 0), (-1, 1),
-                                       (0, -1),          (0, 1),
-                                       (1, -1),  (1, 0), (1, 1)]:
-                            nx, ny = x0 + dx, y0 + dy
-                            if 0 <= nx < width and 0 <= ny < height and not visited[ny][nx] and is_white(pixels[nx, ny]): # type: ignore
-                                visited[ny][nx] = True
-                                queue.append((nx, ny))
-                    # 过滤小区域
-                    if len(region_points) >= 25:
-                        # 计算包围盒
-                        min_x = min(x for x, y in region_points)
-                        max_x = max(x for x, y in region_points)
-                        min_y = min(y for x, y in region_points)
-                        max_y = max(y for x, y in region_points)
-                        regions.append((min_x, min_y, max_x, max_y))
-        # 按从左到右、从上到下排序
-        regions.sort(key=lambda r: (r[0], r[1]))
-        # 处理每个有效区域
-        for index, (x1, y1, x2, y2) in enumerate(regions):
-            # 裁剪并缩放
-            region_img = img.crop((x1, y1, x2 + 1, y2 + 1))
-            resized_img = region_img.resize(
-                target_size, Image.Resampling.NEAREST)
-            # 保存结果
-            resized_img.save(os.path.join(output_dir, f"{index}.bmp"))
+    if not fast_mode:
+        for filename in os.listdir(directory):
+            if not filename.endswith('.bmp'):
+                continue
+            # 创建输出文件夹
+            base_name = filename.split('.')[0]
+            output_dir = os.path.join(directory, base_name)
+            os.makedirs(output_dir, exist_ok=True)
+            # 打开并转换图像
+            img = Image.open(os.path.join(directory, filename)).convert('L')
+            # 处理图像并保存结果
+            imgs = process_images_core(img, target_size)
+            for index, resized_img in enumerate(imgs):
+                # 保存结果
+                resized_img.save(os.path.join(output_dir, f"{index}.bmp"))
+    else:
+        imgss = []
+        for img in imgs:
+            imgss.append(process_images_core(img, target_size))
+        return imgss
 
 
 def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/split_images', fast_mode = False, img = None):
@@ -269,6 +293,7 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
     for idx, (col, s_row, e_row) in enumerate(filtered_segments):
         found_row = -1
         found_col_end = -1
+        imgs.append(None)
 
         # 如果不在idx_ext_list中,在竖列高度范围内寻找有效行
         if not idx in idx_ext_list:
@@ -307,7 +332,7 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
             # 执行裁剪并保存
             cropped_img = img.crop((left, upper, right, lower))
             if fast_mode:
-                imgs.append(cropped_img)
+                imgs[idx] = cropped_img
             else:
                 cropped_img.save(os.path.join(save_dir, f'{idx}.bmp'))
     return imgs
@@ -419,12 +444,18 @@ def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/s
     if fast_mode:
         return img.crop((left, top, right, bottom))
     # 打开图片
+    if input_path == output_path:
+        output_path += '.crop_tmp'
     with Image.open(input_path) as img:
         # 截取图片
         cropped_img = img.crop((left, top, right, bottom))
         # 保存图片
         cropped_img.save(output_path, 'PNG')
         print(f"图片已成功截取并保存到 {output_path}")
+    # 如果末尾是'.crop_tmp',则删除原文件
+    if output_path.endswith('.crop_tmp'):
+        os.remove(input_path)
+        os.rename(output_path, input_path)
 
 def resize_image_core(img):
     # 计算新的尺寸，保持宽高比
@@ -478,18 +509,23 @@ def capture_screenshot(save_path='./temp/screenshot.png',fast_mode=False):
         # 保存截图为PNG格式
         mss.tools.to_png(screenshot.rgb, screenshot.size, output=save_path)
 
-def fast_mode(config):
-    img = capture_screenshot(fast_mode=True)
+def fast_arrow(config, img = None):
+    if img is None:
+        img = capture_screenshot(fast_mode=True)
     img = resize_image_core(img)
     img = crop_image(img=img, fast_mode=True, config=config)
     img = binarize_image(img=img, fast_mode=True, config=config)
     imgs = split_image(img=img, fast_mode=True)
-    process_images()
+    imgss = process_images(fast_mode=True, imgs=imgs)
+    return arrow_str_fast(imgss)
 
 if __name__ == "__main__":
     import time
     # 记录开始时间
     # time.sleep(5)
+    start_time = time.time()
+    print(fast_arrow(getConfigDict(),Image.open('./temp/screenshot.png')))
+    print(f'耗时: {time.time() - start_time} 秒')
     start_time = time.time()
     # capture_screenshot()
     resize_image()

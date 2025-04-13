@@ -7,7 +7,7 @@ import time
 import logging
 from util.Util import run_in_thread
 from util.globalHotKeyManager import GlobalHotKeyManager,key_dict
-from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, process_images, resize_image, split_image
+from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, fast_arrow, process_images, resize_image, split_image
 from util.settingGUI import settingsGUI
 from util.loadSetting import getConfigDict
 from util.SystemTrayIcon import SystemTrayIcon
@@ -68,6 +68,28 @@ def di(m = 0):
     except Exception as e:
         logging.debug(f'beep error: {e}')
 
+def arrow_merge(arrow_original_s,arrow_default_s):
+    arrow_default_l = arrow_default_s.split('\n')
+    if not arrow_original_s:
+        return arrow_default_l
+    arrow_original_l = arrow_original_s.split('\n')
+    arrow_processed_l = []
+    for i in range(len(arrow_original_l)):
+        line = arrow_original_l[i]
+        # 如果是空的,查找arrow_default_l中有没有,有就采用arrow_default_l的值
+        if not line or len(line) <= 2:
+            if len(arrow_default_l) > i and arrow_default_l[i]:
+                arrow_processed_l.append(arrow_default_l[i])
+            else:
+                arrow_processed_l.append(line)
+        else:
+            arrow_processed_l.append(line)
+    # 如果arrow_original_l比arrow_default_l少,则用arrow_default_l的值补齐
+    if len(arrow_original_l) < len(arrow_default_l):
+        arrow_processed_l += arrow_default_l[len(arrow_original_l):]
+    return arrow_processed_l
+
+
 file_lock = threading.Lock()
 
 hotkeyOCR_is_running = False
@@ -95,24 +117,12 @@ def hotkeyOCR():
         arrow_original_s = arrow_str()
         if len(arrow_original_s) < 8:
             raise Exception(arrow_original_s)
-        arrow_original_l = arrow_original_s.split('\n')
         with file_lock:
             with open('./temp/arrow_original.txt', 'w') as f:
                 f.write(arrow_original_s)
             with open('./defaultArrow.txt', 'r') as f:
-                arrow_default_l = f.read().split('\n')
-        arrow_processed_l = []
-        # 遍历arrow_s每一行
-        for i in range(len(arrow_original_l)):
-            line = arrow_original_l[i]
-            # 如果是空的,查找arrow_default_l中有没有,有就采用arrow_default_l的值
-            if not line or len(line) <= 2:
-                if len(arrow_default_l) > i and arrow_default_l[i]:
-                    arrow_processed_l.append(arrow_default_l[i])
-                else:
-                    arrow_processed_l.append(line)
-            else:
-                arrow_processed_l.append(line)
+                arrow_default_s = f.read()
+        arrow_processed_l = arrow_merge(arrow_original_s,arrow_default_s)
         with file_lock:
             with open('./temp/arrow.txt', 'w') as f:
                 f.write('\n'.join(arrow_processed_l))
@@ -142,10 +152,11 @@ def press_and_release(key) -> None:
     keyboard.release(key)
     random_sleep(delay_min, delay_max)
 
-def c(line_s : str):
+def c(line_s : str, fast_mode: bool = False):
     # 更新config
     global config
-    config = getConfigDict()
+    if not fast_mode:
+        config = getConfigDict()
     for s in line_s:
         if not s:
             continue
@@ -163,25 +174,51 @@ def c(line_s : str):
 hotkeyother_is_running = False
 hotkeyother_lock = threading.Lock()
 @run_in_thread
-def hotkey_other(num: int):
-    global hotkeyother_is_running
+def hotkey_other(num: int, fast_mode = False):
+    global hotkeyother_is_running, config
     with hotkeyother_lock:
         if hotkeyother_is_running:
             return
         hotkeyother_is_running = True
     try:
-        with file_lock:
-            # 如果temp/arrow.txt存在,则读取并执行
-            if os.path.exists('./temp/arrow.txt'):
-                with open('./temp/arrow.txt', 'r') as f:
-                    arrow = f.read().split('\n')
-            # 如果不存在,则读取defaultArrow.txt
-            else:
+        if not fast_mode:
+            with file_lock:
+                # 如果temp/arrow.txt存在,则读取并执行
+                if os.path.exists('./temp/arrow.txt'):
+                    with open('./temp/arrow.txt', 'r') as f:
+                        arrow = f.read().split('\n')
+                # 如果不存在,则读取defaultArrow.txt
+                else:
+                    with open('./defaultArrow.txt', 'r') as f:
+                        arrow = f.read().split('\n')
+        else:
+            try:
+                arrow = fast_arrow(config)
+                if not arrow:
+                    raise Exception('未识别到箭头')
+            except Exception as e:
+                logging.debug(f'未识别到箭头: {e}')
+                # di(2)
+                with file_lock:
+                    # 如果temp/arrow.txt存在,则读取并执行
+                    if os.path.exists('./temp/arrow.txt'):
+                        with open('./temp/arrow.txt', 'r') as f:
+                            arrow = f.read().split('\n')
+                    else:
+                        arrow = ''
+            with file_lock:
                 with open('./defaultArrow.txt', 'r') as f:
-                    arrow = f.read().split('\n')
+                    default_arrow = f.read()
+            arrow = arrow_merge(arrow, default_arrow)
+
         code = arrow[num - 1]
         logging.debug(f'执行: {code}')
-        c(code)
+        c(code, fast_mode)
+        if fast_mode:
+            # 写出temp/arrow.txt
+            with file_lock:
+                with open('./temp/arrow.txt', 'w') as f:
+                    f.write('\n'.join(arrow))
     except Exception as e:
         logging.debug(f'操作失败: {num} {e}')
         di(2)
