@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import random
+import sys
 import threading
 import os
 import shutil
@@ -240,6 +241,14 @@ def main():
     # 运行结束
     hotkeyManager.stop()
 
+def onlySettingGuiMain():
+    checkPath()
+    global config
+    config = getConfigDict()
+    hotkeyManager = GlobalHotKeyManager()
+    GUI = settingsGUI(config, hotkeyManager)
+    hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
+    GUI.open_settings_gui()
 
 if __name__ == '__main__':
     logging.basicConfig(
@@ -271,4 +280,8 @@ This is free software, and you are welcome to redistribute it under certain cond
 ''')
 
     logging.debug('===开始===')
-    main()
+    # 如果参数包含"--only-setting-gui",则只打开设置界面
+    if '--only-setting-gui' in sys.argv:
+        onlySettingGuiMain()
+    else:
+        main()

@@ -332,7 +332,7 @@ class settingPanel(QWidget):
     def onResizeSaved(self):
         x, y, w, h = self.overlay.geometry().getRect()
         # change window size to absolute position
-        w, h = x + w, y + h
+        w, h = x + w, y + h # type: ignore
 
         # EDIT: haha i cant fix that, no help at all
         # linux wayland desktop defensive fix, fucking wayland destroy everything
@@ -390,8 +390,6 @@ class settingsGUI:
 
         window = settingPanel(app, config, hotkeyManager)
         self.window = window
-
-        self.open_settings_gui()
 
     def open_settings_gui(self):
         self.window.show()
