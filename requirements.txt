@@ -1,5 +1,7 @@
 Pillow==11.1.0
 mss==10.0.0
 pynput==1.8.1
+PyQt6==6.9.0
+PyQt6_sip==13.10.0
 pystray==0.19.5
 requests==2.31.0
