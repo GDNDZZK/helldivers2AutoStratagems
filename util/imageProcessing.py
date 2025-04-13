@@ -89,7 +89,10 @@ def arrow_str(input_dir='./temp/split_images'):
     return result
 
 
-def process_images(directory='./temp/split_images', target_size=(15, 15)):
+# def process_images_core(img, target_size=(15, 15)):
+    
+
+def process_images(directory='./temp/split_images', target_size=(15, 15), fast_mode = False, imgs = None):
     """
     处理指定目录下的所有n.bmp图片,切割连续白色区域并保存到对应编号的文件夹
 
@@ -106,7 +109,7 @@ def process_images(directory='./temp/split_images', target_size=(15, 15)):
         output_dir = os.path.join(directory, base_name)
         os.makedirs(output_dir, exist_ok=True)
         # 打开并转换图像
-        img = Image.open(os.path.join(directory, filename)).convert('RGB')
+        img = Image.open(os.path.join(directory, filename)).convert('L')
         width, height = img.size
         pixels = img.load()
         # 初始化访问矩阵和区域列表
@@ -155,9 +158,11 @@ def process_images(directory='./temp/split_images', target_size=(15, 15)):
             resized_img.save(os.path.join(output_dir, f"{index}.bmp"))
 
 
-def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/split_images'):
+def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/split_images', fast_mode = False, img = None):
+    imgs = []
     # 打开图片并转换为灰度图
-    img = Image.open(image_path).convert('L')
+    if not fast_mode:
+        img = Image.open(image_path).convert('L')
     width, height = img.size
 
     # 寻找第一列满足连续15个白像素的列
@@ -256,7 +261,8 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
     filtered_segments = new_filtered_segments
 
     # 创建保存目录
-    os.makedirs(save_dir, exist_ok=True)
+    if not fast_mode:
+        os.makedirs(save_dir, exist_ok=True)
 
     found_col_end_list = []
     # 处理每个有效竖列
@@ -300,7 +306,11 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
 
             # 执行裁剪并保存
             cropped_img = img.crop((left, upper, right, lower))
-            cropped_img.save(os.path.join(save_dir, f'{idx}.bmp'))
+            if fast_mode:
+                imgs.append(cropped_img)
+            else:
+                cropped_img.save(os.path.join(save_dir, f'{idx}.bmp'))
+    return imgs
 
 
 def hex_to_rgb(hex_color):
@@ -327,8 +337,31 @@ def color_to_grayscale(color, threshold=None, target_colors = [hex_to_rgb(c) for
             return 255  # 白色
     return 0  # 黑色
 
+def binarize_image_core(threshold, colors, img):
+    """
+    将图片按规则二值化。
 
-def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./temp/screenshot_binary.bmp', threshold=None):
+    参数:
+    threshold (int): 颜色匹配的阈值。
+    colors (list): 目标颜色列表。
+    img (PIL.Image): PIL图片对象。
+    """
+    # 将图片转换为RGB模式
+    img_rgb = img.convert('RGB')
+    # 创建一个新的图片用于存储二值化结果
+    img_binary = Image.new('L', img_rgb.size)
+    # 遍历每个像素
+    for x in range(img_rgb.width):
+        for y in range(img_rgb.height):
+            # 获取当前像素的颜色
+            r, g, b = img_rgb.getpixel((x, y))
+            # 将颜色转换为灰度值
+            gray_value = color_to_grayscale((r, g, b), threshold, colors)
+            # 设置新的像素值
+            img_binary.putpixel((x, y), gray_value)
+    return img_binary
+
+def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./temp/screenshot_binary.bmp', threshold=None, config = None, fast_mode = False, img = None):
     """
     将PNG图片按规则二值化并保存为BMP格式。
 
@@ -337,10 +370,13 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
     output_path (str): 保存BMP图片的路径。
     threshold (int): 颜色匹配的阈值。
     """
-    config = getConfigDict()
+    if config is None:
+        config = getConfigDict()
     colors = [hex_to_rgb(c) for c in config['COLORS'].split(',')]
     if threshold is None:
         threshold = int(config['THRESHOLD'])
+    if fast_mode:
+        return binarize_image_core(threshold, colors, img)
     try:
         # 打开图片
         with Image.open(input_path) as img:
@@ -348,17 +384,7 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
             img_rgb = img.convert('RGB')
 
             # 创建一个新的图片用于存储二值化结果
-            img_binary = Image.new('L', img_rgb.size)
-
-            # 遍历每个像素
-            for x in range(img_rgb.width):
-                for y in range(img_rgb.height):
-                    # 获取当前像素的颜色
-                    r, g, b = img_rgb.getpixel((x, y))
-                    # 将颜色转换为灰度值
-                    gray_value = color_to_grayscale((r, g, b), threshold, colors)
-                    # 设置新的像素值
-                    img_binary.putpixel((x, y), gray_value)
+            img_binary = binarize_image_core(threshold, colors, img_rgb)
 
             # 保存图片
             img_binary.save(output_path, 'BMP')
@@ -368,7 +394,7 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
         print(f"处理图片时发生错误: {e}")
 
 
-def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_cropped.png', left=None, top=None, right=None, bottom=None):
+def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_cropped.png', left=None, top=None, right=None, bottom=None, config = None,fast_mode = False, img = None):
     """
     截取PNG图片的左上角区域并保存。
 
@@ -380,7 +406,8 @@ def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/s
     right (int): 截取区域的右边界。
     bottom (int): 截取区域的下边界。
     """
-    config = getConfigDict()
+    if config is None:
+        config = getConfigDict()
     if left is None:
         left = int(config['LEFT'])
     if top is None:
@@ -389,6 +416,8 @@ def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/s
         right = int(config['RIGHT'])
     if bottom is None:
         bottom = int(config['BOTTOM'])
+    if fast_mode:
+        return img.crop((left, top, right, bottom))
     # 打开图片
     with Image.open(input_path) as img:
         # 截取图片
@@ -397,6 +426,18 @@ def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/s
         cropped_img.save(output_path, 'PNG')
         print(f"图片已成功截取并保存到 {output_path}")
 
+def resize_image_core(img):
+    # 计算新的尺寸，保持宽高比
+    original_width, original_height = img.size
+    aspect_ratio = original_height / original_width
+    new_height = 720
+    new_width = int(new_height / aspect_ratio)
+    # 调整图片尺寸
+    try:
+        resized_img = img.resize((new_width, new_height), Image.LANCZOS)
+    except:
+        resized_img = img.resize((new_width, new_height), Image.ANTIALIAS)
+    return resized_img
 
 def resize_image(input_path='./temp/screenshot.png', output_path='./temp/screenshot_resized.png'):
     """
@@ -408,27 +449,21 @@ def resize_image(input_path='./temp/screenshot.png', output_path='./temp/screens
     """
     # 打开图片
     with Image.open(input_path) as img:
-        # 计算新的尺寸，保持宽高比
-        original_width, original_height = img.size
-        aspect_ratio = original_height / original_width
-        new_height = 720
-        new_width = int(new_height / aspect_ratio)
-        # 调整图片尺寸
-        try:
-            resized_img = img.resize((new_width, new_height), Image.LANCZOS)
-        except:
-            resized_img = img.resize((new_width, new_height), Image.ANTIALIAS)
+        resized_img = resize_image_core(img)
         # 保存图片
         resized_img.save(output_path, 'PNG')
         print(f"图片已成功缩放并保存到 {output_path}")
 
 
-def capture_screenshot(save_path='./temp/screenshot.png'):
+def capture_screenshot(save_path='./temp/screenshot.png',fast_mode=False):
     """
     获取屏幕截图并保存为PNG格式到指定路径
 
     :param save_path: 保存截图的路径
     """
+    # 如果save_path包含'temp/'且fast_mode为False且temp目录不存在,则创建temp目录
+    if not fast_mode and 'temp/' in save_path and not os.path.exists('./temp'):
+        os.makedirs('./temp')
     with mss.mss() as sct:
         # 获取屏幕的尺寸
         monitor = sct.monitors[1]
@@ -436,9 +471,20 @@ def capture_screenshot(save_path='./temp/screenshot.png'):
         # 获取屏幕截图
         screenshot = sct.grab(monitor)
 
+        if fast_mode:
+            image = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
+            return image
+
         # 保存截图为PNG格式
         mss.tools.to_png(screenshot.rgb, screenshot.size, output=save_path)
 
+def fast_mode(config):
+    img = capture_screenshot(fast_mode=True)
+    img = resize_image_core(img)
+    img = crop_image(img=img, fast_mode=True, config=config)
+    img = binarize_image(img=img, fast_mode=True, config=config)
+    imgs = split_image(img=img, fast_mode=True)
+    process_images()
 
 if __name__ == "__main__":
     import time
