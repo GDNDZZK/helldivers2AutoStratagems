@@ -251,6 +251,11 @@ def onlySettingGuiMain():
     GUI.open_settings_gui()
 
 if __name__ == '__main__':
+    print(f'''helldivers2AutoStratagems {version} Copyright (C) 2025 GDNDZZK
+This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
+This is free software, and you are welcome to redistribute it under certain conditions.
+''')
+
     logging.basicConfig(
     level=logging.DEBUG,  # 设置全局日志级别为 DEBUG
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -274,11 +279,6 @@ if __name__ == '__main__':
     logger.handlers = []  # 清空默认处理器
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
-    logging.debug(f'''helldivers2AutoStratagems {version} Copyright (C) 2025 GDNDZZK
-This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
-This is free software, and you are welcome to redistribute it under certain conditions.
-''')
-
     logging.debug('===开始===')
     # 如果参数包含"--only-setting-gui",则只打开设置界面
     if '--only-setting-gui' in sys.argv:

@@ -1,3 +1,4 @@
+import logging
 from pystray import Icon as PystrayIcon, Menu as PystrayMenu, MenuItem as PystrayMenuItem
 from PIL import Image
 from util.settingGUI import settingsGUI
@@ -18,7 +19,7 @@ class SystemTrayIcon:
         self.icon.run()
 
     def on_exit(self):
-        print('exit触发')
+        logging.debug('exit触发')
         self.icon.stop()
 
     def change_icon(self, image):

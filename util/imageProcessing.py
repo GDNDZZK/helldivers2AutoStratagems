@@ -1,3 +1,4 @@
+import logging
 import os
 import mss
 import mss.tools
@@ -205,7 +206,7 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
             break
 
     if target_col == -1:
-        print("未找到符合条件的列")
+        logging.warning("未找到符合条件的列")
         return
 
     # 在目标列及其右侧两列中查找所有有效竖列
@@ -414,9 +415,9 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
             # 保存图片
             img_binary.save(output_path, 'BMP')
 
-            print(f"图片已成功二值化并保存到 {output_path}")
+            logging.debug(f"图片已成功二值化并保存到 {output_path}")
     except Exception as e:
-        print(f"处理图片时发生错误: {e}")
+        logging.warning(f"处理图片时发生错误: {e}")
 
 
 def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_cropped.png', left=None, top=None, right=None, bottom=None, config = None,fast_mode = False, img = None):
@@ -451,7 +452,7 @@ def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/s
         cropped_img = img.crop((left, top, right, bottom))
         # 保存图片
         cropped_img.save(output_path, 'PNG')
-        print(f"图片已成功截取并保存到 {output_path}")
+        logging.debug(f"图片已成功截取并保存到 {output_path}")
     # 如果末尾是'.crop_tmp',则删除原文件
     if output_path.endswith('.crop_tmp'):
         os.remove(input_path)
@@ -483,7 +484,7 @@ def resize_image(input_path='./temp/screenshot.png', output_path='./temp/screens
         resized_img = resize_image_core(img)
         # 保存图片
         resized_img.save(output_path, 'PNG')
-        print(f"图片已成功缩放并保存到 {output_path}")
+        logging.debug(f"图片已成功缩放并保存到 {output_path}")
 
 
 def capture_screenshot(save_path='./temp/screenshot.png',fast_mode=False):
