@@ -288,26 +288,15 @@ class GlobalHotKeyManager:
             self.setting_func = setting_func
         if not other_func is None:
             self.other_func = other_func
-        activation_keys = config['ACTIVATION'].split('+')
-        ocr_keys = config.get('OCRKEY','-').split('+')
-        setting_keys = config.get('SETTINGKEY','-').split('+')
-        other_keys = [
-            ['1'],
-            ['2'],
-            ['3'],
-            ['4'],
-            ['5'],
-            ['6'],
-            ['7'],
-            ['8'],
-            ['9'],
-            ['0'],
-        ]
-
-        self.register(activation_keys + ocr_keys, self.ocr_func)
-        self.register(activation_keys + setting_keys, self.setting_func)
+        ocr_keys = config.get('OCRKEY','<ctrl_l>+<->|<ctrl_r>+<->').split('|')
+        setting_keys = config.get('SETTINGKEY','<ctrl_l>+<=>|<ctrl_r>+<=>').split('|')
+        for keys in ocr_keys:
+            self.register(keys.split('+'), self.ocr_func)
+        for keys in setting_keys:
+            self.register(keys.split('+'), self.setting_func)
         for i in range(1, 11):
-            self.register(activation_keys + other_keys[i - 1], lambda x=i: self.other_func(x))
+            for keys in config.get(f'SKEY{i}',f'<ctrl_l>+<{i}>|<ctrl_r>+<{i}>').split('|'):
+                self.register(keys.split('+'), lambda x=i: self.other_func(x))
 
 
 class KeyboardListener:
