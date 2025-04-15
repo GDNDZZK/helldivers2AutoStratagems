@@ -175,7 +175,7 @@ class resizePanel(QWidget):
 
         self.drag_position = QPoint()
 
-        self.save_button = QPushButton("保存", self)
+        self.save_button = QPushButton("完成", self)
         self.save_button.setFixedSize(80, 40)
         self.save_button.clicked.connect(parent.onResizeSaved)
         self.save_button.setStyleSheet(
