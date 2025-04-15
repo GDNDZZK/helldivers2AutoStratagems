@@ -11,17 +11,16 @@ from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer
 
 class resizePanel(QWidget):
 
-    border_color = QColor(0, 120, 215, 255)
-    border_width = 4
-    corner_radius = 10
-    min_w, min_h = 100, 60
-
-    resizing = False
-    resize_corner = False
-    drag_position = None
+    BORDER_COLOR = QColor(0, 120, 215, 255)
+    BORDER_WIDTH = 4
+    CORNER_RADIUS = 10
+    MIN_W, MIN_H = 100, 60
 
     def __init__(self, parent, x, y, w, h):
         super().__init__()
+
+        self.resize_corner = False
+        self.resizing = False
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
@@ -32,7 +31,7 @@ class resizePanel(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setMouseTracking(True)
 
-        self.resize(max(self.min_w, w), max(self.min_h, h))
+        self.resize(max(self.MIN_W, w), max(self.MIN_H, h))
         self.move(x, y)
 
         self.drag_position = QPoint()
@@ -58,13 +57,13 @@ class resizePanel(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setBrush(QBrush(QColor(0, 120, 215, 60)))
-        painter.setPen(QPen(self.border_color, self.border_width))
+        painter.setPen(QPen(self.BORDER_COLOR, self.BORDER_WIDTH))
 
         rect = self.rect().adjusted(
-            self.border_width, self.border_width,
-            -self.border_width, -self.border_width
+            self.BORDER_WIDTH, self.BORDER_WIDTH,
+            -self.BORDER_WIDTH, -self.BORDER_WIDTH
         )
-        painter.drawRoundedRect(rect, self.corner_radius, self.corner_radius)
+        painter.drawRoundedRect(rect, self.CORNER_RADIUS, self.CORNER_RADIUS)
 
     def resizeEvent(self, event):
         padding = 10
@@ -122,7 +121,7 @@ class resizePanel(QWidget):
         new_w = self.width() + delta.x()
         new_h = self.height() + delta.y()
 
-        self.resize(max(self.min_w, new_w), max(self.min_h, new_h))
+        self.resize(max(self.MIN_W, new_w), max(self.MIN_H, new_h))
         self.drag_position = current_pos
 
     def mouseReleaseEvent(self, event):
@@ -131,33 +130,6 @@ class resizePanel(QWidget):
 
 
 class settingPanel(QWidget):
-
-    qApp = None
-    config = None
-
-    reset_button = None
-
-    save_button = None
-
-    start_with_program_checkbox = None
-
-    manual_edit_button = None
-
-    delay_min_spinbox = None
-    delay_max_spinbox = None
-
-    keybind_button = None
-    onGettingKeys = False
-    #TODO: for multi key support
-    #onHoldKeys = []
-
-    resize_button = None
-    resize_test_button = None
-    overlay = None
-    size_x_spinbox = None
-    size_y_spinbox = None
-    size_w_spinbox = None
-    size_h_spinbox = None
 
     def __init__(self, qApp, config: dict, hotkeyManager: GlobalHotKeyManager):
         super().__init__()
@@ -309,7 +281,7 @@ class settingPanel(QWidget):
         saveConfigDict(getDefaultConfigDict())
         self.config = getConfigDict()
 
-        # delete all Widgets and reinit them, so i dont need to change the widgets value one by one
+        # delete all widgets and reinit them, so i dont need to change the value one by one
         self.hide()
 
         for child in self.findChildren(QWidget):
