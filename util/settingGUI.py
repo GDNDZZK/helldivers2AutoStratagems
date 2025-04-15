@@ -631,14 +631,14 @@ class settingsGUI:
         self.window = window
 
     def open_settings_gui(self):
-        if self.window.isVisible():
-            self.window.close()
         if hasattr(self.window, "overlay_resize"):
             if self.window.overlay_resize.isVisible():
                 self.window.overlay_resize.close()
         if hasattr(self.window, "overlay_keybinding"):
             if self.window.overlay_keybinding.isVisible():
                 self.window.overlay_keybinding.close()
+        if self.window.isVisible():
+            self.window.close()
 
         self.window.show()
 
