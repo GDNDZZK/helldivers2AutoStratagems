@@ -83,10 +83,6 @@ COLORS=#DAC177,#DF7567,#50AFC8,#74A15F,#BEBEBE,#BAB9A1,#E4D0AA
 ; 按键触发速度设置
 DELAY_MIN=0.03
 DELAY_MAX=0.08
-
-; GUI相关设置
-; GUI是否应该随着程序启动，接受值: 1, 0
-START_GUI_WITH_PROGRAM=1
 '''
 
 def getDefaultConfigDict() -> dict:
