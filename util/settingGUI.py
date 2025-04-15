@@ -4,7 +4,7 @@ from util.globalHotKeyManager import GlobalHotKeyManager, vk_to_key_str
 from util.loadSetting import saveConfigDict, getConfigDict, getDefaultConfigDict
 from util.imageProcessing import capture_screenshot, crop_image, resize_image
 
-from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox
+from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox
 from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices
 from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer
 
@@ -139,6 +139,8 @@ class settingPanel(QWidget):
 
     save_button = None
 
+    start_with_program_checkbox = None
+
     manual_edit_button = None
 
     delay_min_spinbox = None
@@ -163,7 +165,7 @@ class settingPanel(QWidget):
         self.qApp = qApp
         self.config = config
 
-        self.setFixedSize(200, 320)
+        self.setFixedSize(200, 350)
 
         self.initWidgets()
 
@@ -172,7 +174,7 @@ class settingPanel(QWidget):
         # reset button #
 
         self.save_button = QPushButton("重置所有设置", self)
-        self.save_button.setGeometry(10, 280, 85, 30)
+        self.save_button.setGeometry(10, 310, 85, 30)
         self.save_button.setStyleSheet("color: red;")
 
         self.save_button.clicked.connect(self.onResetButtonCliecked)
@@ -182,20 +184,27 @@ class settingPanel(QWidget):
         # save button #
 
         self.save_button = QPushButton("保存所有设置", self)
-        self.save_button.setGeometry(105, 280, 85, 30)
+        self.save_button.setGeometry(105, 310, 85, 30)
 
         self.save_button.clicked.connect(self.onSaveButtonCliecked)
 
         # save button end #
 
+        # start with program #
+
+        self.start_with_program_checkbox = QCheckBox("允许设置面板随程序开启", self)
+        self.start_with_program_checkbox.setGeometry(10, 250, 180, 20)
+        self.start_with_program_checkbox.setChecked(bool(int(self.config.get("START_GUI_WITH_PROGRAM", ""))))
+        # this checkbox state will be saved when save button cliecked
+
+        # start with program end #
+
         # manual edit button #
 
         self.manual_edit_button = QPushButton("（高级）手动编辑配置文件", self)
-        self.manual_edit_button.setGeometry(10, 245, 180, 30)
+        self.manual_edit_button.setGeometry(10, 275, 180, 30)
 
-        self.manual_edit_button.clicked.connect(self.onManualEditButtonCliecked)
-
-        # manual edit button #
+        # manual edit button end #
 
         # spinbox #
 
@@ -316,12 +325,14 @@ class settingPanel(QWidget):
         newConfig = {
             "DELAY_MIN": self.delay_min_spinbox.value(),
             "DELAY_MAX": self.delay_max_spinbox.value(),
-            "ACTIVATION": self.keybind_label.toPlainText(),
+            #"ACTIVATION": self.keybind_label.toPlainText(),
 
             "LEFT": self.size_x_spinbox.value(),
             "TOP": self.size_y_spinbox.value(),
             "RIGHT": self.size_w_spinbox.value(),
-            "BOTTOM": self.size_h_spinbox.value()
+            "BOTTOM": self.size_h_spinbox.value(),
+
+            "START_GUI_WITH_PROGRAM": "1" if self.start_with_program_checkbox.isChecked() else "0"
         }
 
         saveConfigDict(newConfig)
