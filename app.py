@@ -236,6 +236,7 @@ def main():
     GUI = settingsGUI(config, hotkeyManager)
     hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
     hotkeyManager.start()
+    GUI.startWithProgram()
     sti = SystemTrayIcon(GUI)
     sti.start()
     # 运行结束
