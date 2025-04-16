@@ -20,8 +20,7 @@ def keyCallBack(callbak_keys):
         keys = callbak_keys
     update_flag = True
 
-kbl = KeyboardListener(keyCallBack)
-kbl.start()
+kbl = None
 
 class keyBindingDialog(QDialog):
 
