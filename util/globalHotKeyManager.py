@@ -278,8 +278,6 @@ class GlobalHotKeyManager:
         """删除函数,用于删除所有通过注册函数注册的全局快捷键"""
         self.kbl.stop()
         self.kbl = None
-        # 清空字典
-        self.hotkeys.clear()
 
     def auto_register(self, config, ocr_func=None, setting_func=None, other_func=None):
         if not ocr_func is None:
@@ -288,6 +286,8 @@ class GlobalHotKeyManager:
             self.setting_func = setting_func
         if not other_func is None:
             self.other_func = other_func
+        # 清空字典
+        self.hotkeys.clear()
         ocr_keys = config.get('OCRKEY','<ctrl_l>+<->|<ctrl_r>+<->').split('|')
         setting_keys = config.get('SETTINGKEY','<ctrl_l>+<=>|<ctrl_r>+<=>').split('|')
         for keys in ocr_keys:

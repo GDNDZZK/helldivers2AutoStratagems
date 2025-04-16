@@ -26,7 +26,7 @@ kbl.start()
 class keyBindingDialog(QDialog):
 
     def __init__(self, parent):
-        global keys_record_flag
+        global keys_record_flag, kbl
         super().__init__(parent)
 
         self.pressed_keys = []
@@ -39,6 +39,9 @@ class keyBindingDialog(QDialog):
         self.label.setTextFormat(Qt.TextFormat.PlainText)
         self.label.setGeometry(0, 40, 200, 20)
         keys_record_flag = True
+        if kbl is None:
+            kbl = KeyboardListener(keyCallBack)
+            kbl.start()
 
     def keyPressEvent(self, event):
         global update_flag,keys
@@ -54,8 +57,12 @@ class keyBindingDialog(QDialog):
         self.label.setText('+'.join(vk_to_key_str(key) for key in self.pressed_keys))
 
     def keyReleaseEvent(self, event):
-        global keys,keys_record_flag
+        global keys,keys_record_flag, kbl, update_flag
+        if not kbl is None:
+            kbl.stop()
+            kbl = None
         keys = set()
+        update_flag = False
         keys_record_flag = False
         self.accept()
 
@@ -675,5 +682,8 @@ class settingsGUI(QObject):
         if self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE":
             self.open_settings_gui()
 
-    def quit():
+    def quit(self):
+        global kbl
         self.exit_signal.emit()
+        if not kbl is None:
+            kbl.stop()

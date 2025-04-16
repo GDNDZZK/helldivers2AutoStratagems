@@ -237,7 +237,7 @@ def main():
     hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
     hotkeyManager.start()
     sti = SystemTrayIcon(GUI)
-    sti_thread = sti.start()
+    sti_thread = sti.start([GUI.quit])
     # 会阻塞线程
     GUI.startWithProgram()
     # 等待sti线程结束后退出

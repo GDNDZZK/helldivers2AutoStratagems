@@ -15,10 +15,12 @@ class SystemTrayIcon:
         )
 
     @run_in_thread
-    def start(self):
+    def start(self,extra_execution_function=[]):
         self.icon = PystrayIcon('keyboardControlMouse', self.icon_image,
                                 'keyboardControlMouse', self.menu)
         self.icon.run()
+        for func in extra_execution_function:
+            func()
 
     def on_exit(self):
         logging.debug('exit触发')
