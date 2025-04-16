@@ -179,6 +179,10 @@ class keyBindingPanel(QWidget):
     def change_key(self, key_name):
         dialog = keyBindingDialog(self)
         dialog.exec()
+
+        if not dialog.pressed_keys:
+            return
+
         self.textEdits[key_name].setPlainText('+'.join(vk_to_key_str(key) for key in dialog.pressed_keys))
 
 
@@ -305,11 +309,12 @@ class resizePanel(QWidget):
 
 class settingPanel(QWidget):
 
-    def __init__(self, qApp, config: dict):
+    def __init__(self, qApp, config: dict, hotkeyManager: GlobalHotKeyManager):
         super().__init__()
 
         self.qApp = qApp
         self.config = config
+        self.hotkeyMgr = hotkeyManager
         self.keybinds = {}
 
         self.setWindowTitle("QWidget")
@@ -506,6 +511,7 @@ class settingPanel(QWidget):
 
         saveConfigDict(newConfig)
         self.config = getConfigDict()
+        self.hotkeyMgr.auto_register(self.config)
 
         self.close()
     # save button end #
@@ -656,10 +662,11 @@ class settingsGUI(QObject):
 
     exit_signal = pyqtSignal()
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, hotkeyManager: GlobalHotKeyManager):
         super().__init__()
 
         self.config = config
+        self.hotkeyMgr = hotkeyManager
 
     def open_settings_gui(self):
 
@@ -669,13 +676,17 @@ class settingsGUI(QObject):
             self.app = QApplication([])
             self.exit_signal.connect(self.app.quit)
 
-        self.window = settingPanel(self.app, self.config)
+        self.window = settingPanel(self.app, self.config, self.hotkeyMgr)
         self.window.show()
 
         if os.environ.get('WAYLAND_DISPLAY') is not None:
             QMessageBox.critical(self.window, 'Error', '此软件无法在Wayland环境下使用\n详见：\nhttps://github.com/BoboTiG/python-mss/issues/155', QMessageBox.StandardButton.Ok)
 
+        self.hotkeyMgr.stop()
+
         self.app.exec()
+
+        self.hotkeyMgr.start()
 
     def startWithProgram(self):
         if self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE":
