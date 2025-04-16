@@ -89,6 +89,20 @@ DELAY_MAX=0.08
 START_GUI_WITH_PROGRAM=True
 '''
 
+def getConfigFilePath(filename: str = 'config.ini') -> str:
+    """
+    获取指定配置文件的路径
+
+    Args:
+    -filename: str
+
+    Returns:
+    -str
+    """
+    local_path = f'./local/{filename}'
+    file_path = local_path if os.path.exists(local_path) else f'./{filename}'
+    return file_path
+
 def getDefaultConfigDict() -> dict:
     """
     获取默认配置文件并返回一个字典
@@ -107,15 +121,14 @@ def getDefaultConfigDict() -> dict:
             result[key] = value
     return result
 
-def getConfigDict(filename: str = 'config.ini') -> dict:
+def getConfigDict() -> dict:
     """
     读取指定配置文件并返回一个字典
 
     Returns:
     - dict
     """
-    local_path = f'./local/{filename}'
-    file_path = local_path if os.path.exists(local_path) else f'./{filename}'
+    file_path = getConfigFilePath()
     # 如果文件不存在,则创建一个默认的配置文件
     if not os.path.exists(file_path):
         with open(file_path, "w", encoding='utf-8') as f:
@@ -137,7 +150,7 @@ def getConfigDict(filename: str = 'config.ini') -> dict:
     # 返回字典
     return result
 
-def saveConfigDict(config: dict, filename: str = 'config.ini') -> None:
+def saveConfigDict(config: dict) -> None:
     """
     将字典保存到指定配置文件中
 
@@ -145,8 +158,7 @@ def saveConfigDict(config: dict, filename: str = 'config.ini') -> None:
     -config: dict
     -filename: str
     """
-    local_path = f'./local/{filename}'
-    file_path = local_path if os.path.exists(local_path) else f'./{filename}'
+    file_path = getConfigFilePath()
     result = ''
     old_config_str = ''
     # 载入旧设置

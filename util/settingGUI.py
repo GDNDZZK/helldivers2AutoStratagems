@@ -1,7 +1,7 @@
 import os
 
 from util.globalHotKeyManager import GlobalHotKeyManager, vk_to_key_str
-from util.loadSetting import saveConfigDict, getConfigDict, getDefaultConfigDict
+from util.loadSetting import getConfigFilePath, saveConfigDict, getConfigDict, getDefaultConfigDict
 from util.imageProcessing import capture_screenshot, crop_image, resize_image
 
 from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox, QDialog, QVBoxLayout
@@ -491,7 +491,7 @@ class settingPanel(QWidget):
             return
 
 
-        QDesktopServices.openUrl(QUrl.fromLocalFile('./config.ini'))
+        QDesktopServices.openUrl(QUrl.fromLocalFile(getConfigFilePath()))
         # wait for a while to let QDesktopServices finish his job
         QTimer.singleShot(1000, self.close)
     # manual edit button end #
