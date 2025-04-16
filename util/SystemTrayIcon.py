@@ -2,15 +2,13 @@ import logging
 from pystray import Icon as PystrayIcon, Menu as PystrayMenu, MenuItem as PystrayMenuItem
 from PIL import Image
 from util.Util import run_in_thread
-from util.settingGUI import settingsGUI
 
 
 class SystemTrayIcon:
-    def __init__(self, settingsGUI: settingsGUI, image_path='./icon.png'):
+    def __init__(self, openSettingFunc, image_path='./icon.png'):
         self.icon_image = Image.open(image_path)
-        self.settingsGUI = settingsGUI
         self.menu = PystrayMenu(
-            PystrayMenuItem('settings', action=self.settingsGUI.open_settings_gui),
+            PystrayMenuItem('settings', action=openSettingFunc),
             PystrayMenuItem('exit', action=self.on_exit),
         )
 
