@@ -102,7 +102,6 @@
 
 ## settingGUI TODO
 
-* [ ] 兼容多modifies热键绑定，使用scancode而非vk，支持检测左右modifiers
-* [ ] 兼容新的按键绑定设置项
-* [ ] wayland下运行的问题
-* [ ] 启动时默认自动显示设置面板,可以设置不自动显示
+* [ ] GUI增加对更改二值化设置的支持
+* [ ] 修复wayland下运行的问题（蔚蓝得毁掉一切😭）
+* [ ] 使用scancode而非vk码，区分检测左右modifiers
