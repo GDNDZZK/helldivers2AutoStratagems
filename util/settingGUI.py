@@ -641,5 +641,5 @@ class settingsGUI:
         if self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE":
             self.open_settings_gui()
 
-    def quit():
+    def quit(self):
         self.app.quit()
