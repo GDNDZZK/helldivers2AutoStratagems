@@ -85,8 +85,8 @@ DELAY_MIN=0.03
 DELAY_MAX=0.08
 
 ; GUI相关设置
-; GUI是否应该随着程序启动，接受值: 1, 0
-START_GUI_WITH_PROGRAM=1
+; GUI是否应该随着程序启动
+START_GUI_WITH_PROGRAM=True
 '''
 
 def getDefaultConfigDict() -> dict:

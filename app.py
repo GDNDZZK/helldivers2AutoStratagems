@@ -236,10 +236,12 @@ def main():
     GUI = settingsGUI(config, hotkeyManager)
     hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
     hotkeyManager.start()
-    GUI.startWithProgram()
     sti = SystemTrayIcon(GUI)
-    sti.start()
-    # 运行结束
+    sti_thread = sti.start()
+    # 会阻塞线程
+    GUI.startWithProgram()
+    # 等待sti线程结束后退出
+    sti_thread.join()
     hotkeyManager.stop()
 
 def onlySettingGuiMain():

@@ -1,6 +1,7 @@
 import logging
 from pystray import Icon as PystrayIcon, Menu as PystrayMenu, MenuItem as PystrayMenuItem
 from PIL import Image
+from util.Util import run_in_thread
 from util.settingGUI import settingsGUI
 
 
@@ -13,6 +14,7 @@ class SystemTrayIcon:
             PystrayMenuItem('exit', action=self.on_exit),
         )
 
+    @run_in_thread
     def start(self):
         self.icon = PystrayIcon('keyboardControlMouse', self.icon_image,
                                 'keyboardControlMouse', self.menu)

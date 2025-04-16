@@ -307,7 +307,7 @@ class settingPanel(QWidget):
 
         self.start_with_program_checkbox = QCheckBox("允许设置面板随程序开启", self)
         self.start_with_program_checkbox.setGeometry(10, 250, 180, 20)
-        self.start_with_program_checkbox.setChecked(bool(int(self.config.get("START_GUI_WITH_PROGRAM", ""))))
+        self.start_with_program_checkbox.setChecked(self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE")
         # this checkbox state will be saved when save button cliecked
 
         # start with program end #
@@ -565,6 +565,8 @@ class settingPanel(QWidget):
     def onResizeSaved(self):
         x, y, w, h = self.overlay_resize.geometry().getRect()
         # change window size to absolute position
+        if w is None or h is None or x is None or y is None:
+            raise ValueError("Window size cannot be None")
         w, h = x + w, y + h
 
         # EDIT: haha i cant fix that, no help at all
@@ -648,5 +650,5 @@ class settingsGUI:
         self.app.exec()
 
     def startWithProgram(self):
-        if bool(int(self.config.get("START_GUI_WITH_PROGRAM", ""))):
+        if self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE":
             self.open_settings_gui()
