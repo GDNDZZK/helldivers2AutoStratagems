@@ -506,7 +506,7 @@ class settingPanel(QWidget):
             "RIGHT": self.size_w_spinbox.value(),
             "BOTTOM": self.size_h_spinbox.value(),
 
-            "START_GUI_WITH_PROGRAM": "1" if self.start_with_program_checkbox.isChecked() else "0"
+            "START_GUI_WITH_PROGRAM": "True" if self.start_with_program_checkbox.isChecked() else "False"
         })
 
         saveConfigDict(newConfig)

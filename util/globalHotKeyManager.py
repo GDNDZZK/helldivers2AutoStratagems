@@ -139,18 +139,6 @@ for i in range(65, 91):
     key_dict[f'<{t}>'] = KeyCode.from_vk(i)
     key_dict[t.upper()] = KeyCode.from_vk(i)
     key_dict[f'<{t.upper()}>'] = KeyCode.from_vk(i)
-# 0~9
-for i in range(48, 58):
-    t = str(i - 48)
-    key_dict[t] = KeyCode.from_vk(i)
-    key_dict[f'<{t}>'] = KeyCode.from_vk(i)
-# 小键盘 0~9
-for i in range(96, 106):
-    t = str(i - 96)
-    key_dict[f'numpad_{t}'] = KeyCode.from_vk(i)
-    key_dict[f'numpad{t}'] = KeyCode.from_vk(i)
-    key_dict[f'<numpad_{t}>'] = KeyCode.from_vk(i)
-    key_dict[f'<numpad{t}>'] = KeyCode.from_vk(i)
 # 小键盘
 key_dict[f'<numpad_*>'] = KeyCode.from_vk(106)
 key_dict[f'<numpad_multiply>'] = KeyCode.from_vk(106)
@@ -228,6 +216,18 @@ key_dict['<.>'] = KeyCode.from_vk(190)
 key_dict['<>>'] = KeyCode.from_vk(190)
 key_dict['>'] = KeyCode.from_vk(190)
 key_dict['.'] = KeyCode.from_vk(190)
+# 0~9
+for i in range(48, 58):
+    t = str(i - 48)
+    key_dict[t] = KeyCode.from_vk(i)
+    key_dict[f'<{t}>'] = KeyCode.from_vk(i)
+# 小键盘 0~9
+for i in range(96, 106):
+    t = str(i - 96)
+    key_dict[f'numpad_{t}'] = KeyCode.from_vk(i)
+    key_dict[f'numpad{t}'] = KeyCode.from_vk(i)
+    key_dict[f'<numpad_{t}>'] = KeyCode.from_vk(i)
+    key_dict[f'<numpad{t}>'] = KeyCode.from_vk(i)
 
 key_vk_dict = {v.vk: k for k, v in key_dict.items() if '+' not in k and '<' in k and '>' in k}
 
