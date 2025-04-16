@@ -7,7 +7,7 @@ from util.imageProcessing import capture_screenshot, crop_image, resize_image
 
 from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox, QDialog, QVBoxLayout
 from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices
-from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer
+from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer, QObject, pyqtSignal
 
 keys = set()
 update_flag = False
@@ -36,6 +36,7 @@ class keyBindingDialog(QDialog):
 
         self.label = QLabel("等待输入...", self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setTextFormat(Qt.TextFormat.PlainText)
         self.label.setGeometry(0, 40, 200, 20)
         keys_record_flag = True
 
@@ -645,9 +646,13 @@ class settingPanel(QWidget):
     # resize panel end #
 
 # class from old tkGui(early nuked), im too lazy so i didnt change the api format #
-class settingsGUI:
+class settingsGUI(QObject):
+
+    exit_signal = pyqtSignal()
 
     def __init__(self, config: dict):
+        super().__init__()
+
         self.config = config
 
     def open_settings_gui(self):
@@ -656,6 +661,7 @@ class settingsGUI:
             self.quit()
         else:
             self.app = QApplication([])
+            self.exit_signal.connect(self.app.quit)
 
         self.window = settingPanel(self.app, self.config)
         self.window.show()
@@ -669,5 +675,5 @@ class settingsGUI:
         if self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE":
             self.open_settings_gui()
 
-    def quit(self):
-        self.app.quit()
+    def quit():
+        self.exit_signal.emit()
