@@ -1,6 +1,7 @@
 import os
+import time
 
-from util.globalHotKeyManager import GlobalHotKeyManager, vk_to_key_str
+from util.globalHotKeyManager import GlobalHotKeyManager, KeyboardListener, vk_to_key_str
 from util.loadSetting import getConfigFilePath, saveConfigDict, getConfigDict, getDefaultConfigDict
 from util.imageProcessing import capture_screenshot, crop_image, resize_image
 
@@ -8,10 +9,24 @@ from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPush
 from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices
 from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer
 
+keys = set()
+update_flag = False
+keys_record_flag = False
+def keyCallBack(callbak_keys):
+    global keys,update_flag,keys_record_flag
+    if not keys_record_flag:
+        return
+    if len(keys)<len(callbak_keys):
+        keys = callbak_keys
+    update_flag = True
+
+kbl = KeyboardListener(keyCallBack)
+kbl.start()
 
 class keyBindingDialog(QDialog):
 
     def __init__(self, parent):
+        global keys_record_flag
         super().__init__(parent)
 
         self.pressed_keys = []
@@ -22,12 +37,25 @@ class keyBindingDialog(QDialog):
         self.label = QLabel("等待输入...", self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setGeometry(0, 40, 200, 20)
+        keys_record_flag = True
 
     def keyPressEvent(self, event):
-        self.pressed_keys.append(event.nativeVirtualKey())
+        global update_flag,keys
+        for _ in range(30):
+            if update_flag:
+                break
+            time.sleep(0.01)
+            pass
+        if len(self.pressed_keys) < len(keys):
+            self.pressed_keys = list(keys)
+        update_flag = False
+        # self.pressed_keys.append(event.nativeVirtualKey())
         self.label.setText('+'.join(vk_to_key_str(key) for key in self.pressed_keys))
 
     def keyReleaseEvent(self, event):
+        global keys,keys_record_flag
+        keys = set()
+        keys_record_flag = False
         self.accept()
 
 class keyBindingPanel(QWidget):
