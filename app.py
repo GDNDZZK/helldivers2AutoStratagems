@@ -233,7 +233,7 @@ def main():
     global config
     config = getConfigDict()
     hotkeyManager = GlobalHotKeyManager()
-    GUI = settingsGUI(config, hotkeyManager)
+    GUI = settingsGUI(config)
     hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
     hotkeyManager.start()
     sti = SystemTrayIcon(GUI)
@@ -249,7 +249,7 @@ def onlySettingGuiMain():
     global config
     config = getConfigDict()
     hotkeyManager = GlobalHotKeyManager()
-    GUI = settingsGUI(config, hotkeyManager)
+    GUI = settingsGUI(config)
     hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
     GUI.open_settings_gui()
 

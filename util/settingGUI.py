@@ -270,7 +270,7 @@ class resizePanel(QWidget):
 
 class settingPanel(QWidget):
 
-    def __init__(self, qApp, config: dict, hotkeyManager: GlobalHotKeyManager):
+    def __init__(self, qApp, config: dict):
         super().__init__()
 
         self.qApp = qApp
@@ -619,29 +619,17 @@ class settingPanel(QWidget):
 # class from old tkGui(early nuked), im too lazy so i didnt change the api format #
 class settingsGUI:
 
-    app = None
-    window = None
-    config = None
-
-    def __init__(self, config: dict, hotkeyManager: GlobalHotKeyManager):
+    def __init__(self, config: dict):
         self.config = config
 
-        app = QApplication([])
-        self.app = app
-
-        window = settingPanel(app, config, hotkeyManager)
-        self.window = window
-
     def open_settings_gui(self):
-        if hasattr(self.window, "overlay_resize"):
-            if self.window.overlay_resize.isVisible():
-                self.window.overlay_resize.close()
-        if hasattr(self.window, "overlay_keybinding"):
-            if self.window.overlay_keybinding.isVisible():
-                self.window.overlay_keybinding.close()
-        if self.window.isVisible():
-            self.window.close()
 
+        if hasattr(self, "app"):
+            self.quit()
+        else:
+            self.app = QApplication([])
+
+        self.window = settingPanel(self.app, self.config)
         self.window.show()
 
         if os.environ.get('WAYLAND_DISPLAY') is not None:
@@ -652,3 +640,6 @@ class settingsGUI:
     def startWithProgram(self):
         if self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE":
             self.open_settings_gui()
+
+    def quit():
+        self.app.quit()
