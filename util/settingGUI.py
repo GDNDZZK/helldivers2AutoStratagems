@@ -501,10 +501,10 @@ class settingPanel(QWidget):
             "DELAY_MAX": self.delay_max_spinbox.value(),
             #"ACTIVATION": self.keybind_label.toPlainText(),
 
-            "LEFT": self.size_x_spinbox.value(),
-            "TOP": self.size_y_spinbox.value(),
-            "RIGHT": self.size_w_spinbox.value(),
-            "BOTTOM": self.size_h_spinbox.value(),
+            "LEFT": int(self.size_x_spinbox.value()),
+            "TOP": int(self.size_y_spinbox.value()),
+            "RIGHT": int(self.size_w_spinbox.value()),
+            "BOTTOM": int(self.size_h_spinbox.value()),
 
             "START_GUI_WITH_PROGRAM": "True" if self.start_with_program_checkbox.isChecked() else "False"
         })
