@@ -435,13 +435,13 @@ def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/s
     if config is None:
         config = getConfigDict()
     if left is None:
-        left = int(config['LEFT'])
+        left = int(float(config['LEFT']))
     if top is None:
-        top = int(config['TOP'])
+        top = int(float(config['TOP']))
     if right is None:
-        right = int(config['RIGHT'])
+        right = int(float(config['RIGHT']))
     if bottom is None:
-        bottom = int(config['BOTTOM'])
+        bottom = int(float(config['BOTTOM']))
     if fast_mode:
         return img.crop((left, top, right, bottom))
     # 打开图片
