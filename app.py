@@ -229,33 +229,20 @@ def hotkey_other(num: int, fast_mode = False):
         with hotkeyother_lock:
             hotkeyother_is_running = False
 
-open_settings_gui_flag = False
-def open_settings_gui():
-    global open_settings_gui_flag
-    open_settings_gui_flag = True
-open_settings_gui_end_flag = False
-def open_settings_gui_end():
-    global open_settings_gui_end_flag
-    open_settings_gui_end_flag = True
 
 def main():
-    global config, open_settings_gui_flag, open_settings_gui_end_flag,open_settings_gui,open_settings_gui_end
     checkPath()
+    global config
     config = getConfigDict()
     hotkeyManager = GlobalHotKeyManager()
     GUI = settingsGUI(config, hotkeyManager)
     srv = FastAPIServer()
-    hotkeyManager.auto_register(config, hotkeyOCR, open_settings_gui, hotkey_other)
+    hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
     hotkeyManager.start()
-    sti = SystemTrayIcon(open_settings_gui, srv.start, srv.stop)
-    sti_thread = sti.start([GUI.quit, open_settings_gui_end])
+    sti = SystemTrayIcon(GUI, srv.start, srv.stop)
+    sti_thread = sti.start([GUI.quit])
     # 会阻塞线程
     GUI.startWithProgram()
-    while not open_settings_gui_end_flag:
-        if open_settings_gui_flag:
-            GUI.open_settings_gui()
-            open_settings_gui_flag = False
-        time.sleep(0.01)
     # 等待sti线程结束后退出
     sti_thread.join()
     hotkeyManager.stop()
