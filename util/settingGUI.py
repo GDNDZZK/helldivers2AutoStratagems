@@ -184,6 +184,7 @@ class keyBindingPanel(QWidget):
             return
 
         self.textEdits[key_name].setPlainText('+'.join(vk_to_key_str(key) for key in dialog.pressed_keys))
+        dialog.deleteLater()
 
 
 class resizePanel(QWidget):
@@ -316,11 +317,10 @@ class settingPanel(QWidget):
         self.config = config
         self.hotkeyMgr = hotkeyManager
         self.keybinds = {}
+        self.is_closed = True
 
         self.setWindowTitle("QWidget")
         self.setFixedSize(200, 350)
-
-        self.hotkeyMgr.stop()
 
         self.initWidgets()
 
@@ -659,7 +659,11 @@ class settingPanel(QWidget):
         return (original_x, original_y)
     # resize panel end #
 
+    def showEvent(self, event):
+        self.is_closed = False
+
     def closeEvent(self, event):
+        self.is_closed = True
         self.hotkeyMgr.start()
         super().closeEvent(event)
 
@@ -675,34 +679,30 @@ class settingsGUI(QObject):
         self.hotkeyMgr = hotkeyManager
 
         self.app = QApplication([])
-        self.exit_signal.connect(self.app.quit)\
+        self.app.setQuitOnLastWindowClosed(False)
+        self.exit_signal.connect(self.app.quit)
+
+        self.window = settingPanel(self.app, self.config, self.hotkeyMgr)
 
     def execute(self):
         self.app.exec()
 
-    def del_qt_widget(self):
-        self.window.close()
-        self.window.deleteLater()
+    def start_qt_widget(self):
 
-    def init_qt_widget(self):
-        self.window = None
+        if not self.window.is_closed:
+            return
 
-        self.window = settingPanel(self.app, self.config, self.hotkeyMgr)
         self.window.show()
+
+        # will restart it when window closed, see settingPanel.closeEvent()
+        self.hotkeyMgr.stop()
 
         if os.environ.get('WAYLAND_DISPLAY') is not None:
             QMessageBox.critical(self.window, 'Error', '此软件无法在Wayland环境下使用\n详见：\nhttps://github.com/BoboTiG/python-mss/issues/155', QMessageBox.StandardButton.Ok)
 
     def open_settings_gui(self):
-        if not hasattr(self, 'window'):
-            # make sure is running on main thread
-            QTimer.singleShot(0, self.init_qt_widget)
-            return
-
         # make sure is running on main thread
-        QTimer.singleShot(0, self.del_qt_widget)
-        # wait for widget delete
-        self.window.destroyed.connect(self.init_qt_widget)
+        QTimer.singleShot(0, self.start_qt_widget)
 
     def startWithProgram(self):
         if self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE":
