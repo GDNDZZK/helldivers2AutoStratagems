@@ -276,7 +276,10 @@ class GlobalHotKeyManager:
 
     def stop(self):
         """删除函数,用于删除所有通过注册函数注册的全局快捷键"""
-        self.kbl.stop()
+        try:
+            self.kbl.stop()
+        except AttributeError:
+            pass
         self.kbl = None
 
     def auto_register(self, config, ocr_func=None, setting_func=None, other_func=None):
