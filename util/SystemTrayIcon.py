@@ -5,11 +5,13 @@ from util.Util import run_in_thread
 
 
 class SystemTrayIcon:
-    def __init__(self, openSettingFunc, image_path='./icon.png'):
+    def __init__(self, openSettingFunc, start_webuiFunc, stop_webuiFunc, image_path='./icon.png'):
         self.icon_image = Image.open(image_path)
         self.menu = PystrayMenu(
             PystrayMenuItem('settings', action=openSettingFunc),
             PystrayMenuItem('exit', action=self.on_exit),
+            PystrayMenuItem('start webui', action=start_webuiFunc),
+            PystrayMenuItem('stop webui', action=stop_webuiFunc),
         )
 
     @run_in_thread

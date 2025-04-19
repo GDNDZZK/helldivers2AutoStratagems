@@ -13,6 +13,8 @@ from util.settingGUI import settingsGUI
 from util.loadSetting import getConfigDict
 from util.SystemTrayIcon import SystemTrayIcon
 from pynput.keyboard import Controller, Key
+
+from util.webui import FastAPIServer
 try:
     from winsound import Beep
 except ModuleNotFoundError:
@@ -242,9 +244,10 @@ def main():
     config = getConfigDict()
     hotkeyManager = GlobalHotKeyManager()
     GUI = settingsGUI(config, hotkeyManager)
+    srv = FastAPIServer()
     hotkeyManager.auto_register(config, hotkeyOCR, open_settings_gui, hotkey_other)
     hotkeyManager.start()
-    sti = SystemTrayIcon(open_settings_gui)
+    sti = SystemTrayIcon(open_settings_gui, srv.start, srv.stop)
     sti_thread = sti.start([GUI.quit, open_settings_gui_end])
     # 会阻塞线程
     GUI.startWithProgram()

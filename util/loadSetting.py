@@ -87,6 +87,8 @@ DELAY_MAX=0.08
 ; GUI相关设置
 ; GUI是否应该随着程序启动
 START_GUI_WITH_PROGRAM=True
+WEB_GUI_PORT=11168
+WEB_GUI_HOST=0.0.0.0
 '''
 
 def getConfigFilePath(filename: str = 'config.ini') -> str:
@@ -133,6 +135,7 @@ def getConfigDict() -> dict:
     if not os.path.exists(file_path):
         with open(file_path, "w", encoding='utf-8') as f:
             f.write(default_config)
+    default_config_dict = getDefaultConfigDict()
     # 创建一个空字典
     result = {}
     # 打开文件
@@ -147,6 +150,10 @@ def getConfigDict() -> dict:
                 key, value = line.split("=", 1)
                 # 将键值对添加到字典中
                 result[key] = value
+    # 遍历default_config_dict,不在result中的键值对添加到result中
+    for key, value in default_config_dict.items():
+        if key not in result:
+            result[key] = value
     # 返回字典
     return result
 
