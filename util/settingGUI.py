@@ -320,6 +320,8 @@ class settingPanel(QWidget):
         self.setWindowTitle("QWidget")
         self.setFixedSize(200, 350)
 
+        self.hotkeyMgr.stop()
+
         self.initWidgets()
 
     def initWidgets(self):
@@ -657,6 +659,10 @@ class settingPanel(QWidget):
         return (original_x, original_y)
     # resize panel end #
 
+    def closeEvent(self, event):
+        self.hotkeyMgr.start()
+        super().closeEvent(event)
+
 # class from old tkGui(early nuked), im too lazy so i didnt change the api format #
 class settingsGUI(QObject):
 
@@ -668,13 +674,18 @@ class settingsGUI(QObject):
         self.config = config
         self.hotkeyMgr = hotkeyManager
 
-    def open_settings_gui(self):
+        self.app = QApplication([])
+        self.exit_signal.connect(self.app.quit)\
 
-        if hasattr(self, "app"):
-            self.quit()
-        else:
-            self.app = QApplication([])
-            self.exit_signal.connect(self.app.quit)
+    def execute(self):
+        self.app.exec()
+
+    def del_qt_widget(self):
+        self.window.close()
+        self.window.deleteLater()
+
+    def init_qt_widget(self):
+        self.window = None
 
         self.window = settingPanel(self.app, self.config, self.hotkeyMgr)
         self.window.show()
@@ -682,11 +693,16 @@ class settingsGUI(QObject):
         if os.environ.get('WAYLAND_DISPLAY') is not None:
             QMessageBox.critical(self.window, 'Error', '此软件无法在Wayland环境下使用\n详见：\nhttps://github.com/BoboTiG/python-mss/issues/155', QMessageBox.StandardButton.Ok)
 
-        self.hotkeyMgr.stop()
+    def open_settings_gui(self):
+        if not hasattr(self, 'window'):
+            # make sure is running on main thread
+            QTimer.singleShot(0, self.init_qt_widget)
+            return
 
-        self.app.exec()
-
-        self.hotkeyMgr.start()
+        # make sure is running on main thread
+        QTimer.singleShot(0, self.del_qt_widget)
+        # wait for widget delete
+        self.window.destroyed.connect(self.init_qt_widget)
 
     def startWithProgram(self):
         if self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE":
@@ -694,6 +710,8 @@ class settingsGUI(QObject):
 
     def quit(self):
         global kbl
+
         self.exit_signal.emit()
+
         if not kbl is None:
             kbl.stop()

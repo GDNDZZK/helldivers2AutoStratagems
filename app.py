@@ -241,8 +241,11 @@ def main():
     hotkeyManager.start()
     sti = SystemTrayIcon(GUI, srv.start, srv.stop)
     sti_thread = sti.start([GUI.quit])
-    # 会阻塞线程
+
     GUI.startWithProgram()
+    # 会阻塞线程
+    GUI.execute()
+
     # 等待sti线程结束后退出
     sti_thread.join()
     hotkeyManager.stop()
