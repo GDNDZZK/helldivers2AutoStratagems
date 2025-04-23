@@ -1,3 +1,6 @@
+import base64
+import io
+import json
 import logging
 import os
 import mss
@@ -290,6 +293,7 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
         os.makedirs(save_dir, exist_ok=True)
 
     found_col_end_list = []
+    screenshot_icon_point_list = []
     # 处理每个有效竖列
     for idx, (col, s_row, e_row) in enumerate(filtered_segments):
         found_row = -1
@@ -336,8 +340,78 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
                 imgs[idx] = cropped_img
             else:
                 cropped_img.save(os.path.join(save_dir, f'{idx}.bmp'))
+            # 记录小列对应图标区域坐标(小列是图标方形区域左边)
+            screenshot_icon_point_list.append({
+                'x1' : col,
+                'y1' : s_row,
+                'x2' : col + found_col_end,
+                'y2' : e_row
+            })
+    if not fast_mode:
+        # 将小列对应图标区域坐标保存到./temp/screenshot_icon_point.json
+        '''
+        ```json
+        [
+            {
+                'x1' : 左上坐标x,
+                'y1' : 左上坐标y,
+                'x2' : 右下坐标x,
+                'y2' : 右下坐标y
+            }
+        ]
+        ```
+        '''
+        # 保存
+        with open('./temp/screenshot_icon_point.json', 'w', encoding='utf-8') as f:
+            f.write(json.dumps(screenshot_icon_point_list, indent=4, ensure_ascii=False))
+
     return imgs
 
+def image_to_png_base64(image):
+    # 创建内存字节缓冲
+    with io.BytesIO() as buffer:
+        # 将图片保存为PNG格式到缓冲区
+        image.save(buffer, format="PNG")
+        # 获取字节数据
+        png_bytes = buffer.getvalue()
+    # 转换为Base64编码并解码为字符串
+    return base64.b64encode(png_bytes).decode("utf-8")
+
+def screenshot_icon_crop_to_base64(point_dict : dict):
+    '''
+    :param point_dict: {'x1' : 左上坐标x,'y1' : 左上坐标y,'x2' : 右下坐标x,'y2' : 右下坐标y}
+    :return: base64编码的图标
+    '''
+    config = getConfigDict()
+    # 计算裁剪前的坐标
+    '''
+    LEFT=30
+    TOP=20
+    RIGHT=220
+    BOTTOM=400
+    '''
+    # 计算缩放后裁剪前的坐标
+    x1 = int(point_dict['x1'] + float(config['LEFT']))
+    y1 = int(point_dict['y1'] + float(config['TOP']))
+    x2 = int(point_dict['x2'] + float(config['LEFT']))
+    y2 = int(point_dict['y2'] + float(config['TOP']))
+    # 读取截图
+    screenshot = Image.open('./temp/screenshot.png')
+    # 计算缩放前的坐标(缩放后会等比缩放,将高缩放到720)
+    # 读取缩放前的宽高
+    original_width, original_height = screenshot.size
+    # 计算缩放比例
+    scale = original_height / 720
+    # 计算缩放前的坐标
+    x1 = int(x1 * scale)
+    y1 = int(y1 * scale)
+    x2 = int(x2 * scale)
+    y2 = int(y2 * scale)
+    # 裁剪
+    icon_img = screenshot.crop((x1, y1, x2, y2))
+    # 添加Base64数据URI的前缀
+    icon_img_base64 = 'data:image/png;base64,' + image_to_png_base64(icon_img)
+    return icon_img_base64
 
 def hex_to_rgb(hex_color):
     """
@@ -524,9 +598,9 @@ if __name__ == "__main__":
     import time
     # 记录开始时间
     # time.sleep(5)
-    start_time = time.time()
-    print(fast_arrow(getConfigDict(),Image.open('./temp/screenshot.png')))
-    print(f'耗时: {time.time() - start_time} 秒')
+    # start_time = time.time()
+    # print(fast_arrow(getConfigDict(),Image.open('./temp/screenshot.png')))
+    # print(f'耗时: {time.time() - start_time} 秒')
     start_time = time.time()
     # capture_screenshot()
     resize_image()

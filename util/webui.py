@@ -1,3 +1,4 @@
+import json
 import os
 import threading
 import time
@@ -11,6 +12,9 @@ from util.loadSetting import getConfigDict
 
 class FastAPIServer:
     def __init__(self):
+
+        self.code_list = []
+
         # 创建 FastAPI 应用
         self.app = FastAPI()
         self.app.mount("/static/", StaticFiles(directory="./static"), name="static")
@@ -32,9 +36,28 @@ class FastAPIServer:
         async def favicon():
             return RedirectResponse("static/favicon.ico")
 
+        @self.app.get('/code')
+        async def code():
+            '''
+            code_list: [{'code' : 'WASD', 'imgUrl' : 'data:image/png;base64,xxx'},...,{...}]
+            return:
+            ```json
+            {
+                "code" : 0,
+                "data" : code_list
+            }
+            ```
+            '''
+            result_dict = {'code': 0, 'data': self.code_list.copy()}
+            self.code_list = []
+            return result_dict
+
         # 服务器实例和线程引用
         self._server = None
         self._thread = None
+
+    def set_code_list(self, new_code_list : list):
+        self.code_list = new_code_list
 
     def start(self):
         """

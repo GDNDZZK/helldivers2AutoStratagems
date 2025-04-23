@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import json
 import random
 import sys
 import threading
@@ -8,7 +9,7 @@ import time
 import logging
 from util.Util import run_in_thread
 from util.globalHotKeyManager import GlobalHotKeyManager,key_dict
-from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, fast_arrow, process_images, resize_image, split_image
+from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, fast_arrow, process_images, resize_image, screenshot_icon_crop_to_base64, split_image
 from util.settingGUI import settingsGUI
 from util.loadSetting import getConfigDict
 from util.SystemTrayIcon import SystemTrayIcon
@@ -129,6 +130,7 @@ def hotkeyOCR():
         with file_lock:
             with open('./temp/arrow.txt', 'w') as f:
                 f.write('\n'.join(arrow_processed_l))
+        srv_set_code(arrow_processed_l)
 
         logging.debug(f'耗时: {time.time() - start_time} 秒')
         logging.debug('===识别结束===')
@@ -229,10 +231,27 @@ def hotkey_other(num: int, fast_mode = False):
         with hotkeyother_lock:
             hotkeyother_is_running = False
 
+@run_in_thread
+def srv_set_code(codes:list[str]):
+    global srv,config
+    '''
+    code_list: [{'code' : 'WASD', 'imgUrl' : 'data:image/png;base64,xxx'},...,{...}]
+    '''
+    result = []
+    with open('./temp/screenshot_icon_point.json', 'r', encoding='utf-8') as f:
+        code_icon_point = json.loads(f.read())
+    for idx,code_line in enumerate(codes):
+        crop_point = code_icon_point[idx]
+        line = {
+            'code' : code_line,
+            'imgUrl' : screenshot_icon_crop_to_base64(crop_point)
+        }
+        result.append(line)
+    srv.set_code_list(result)
 
 def main():
     checkPath()
-    global config
+    global config,srv
     config = getConfigDict()
     hotkeyManager = GlobalHotKeyManager()
     GUI = settingsGUI(config, hotkeyManager)
