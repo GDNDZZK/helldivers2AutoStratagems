@@ -102,6 +102,8 @@
 
 ## settingGUI TODO
 
-* [ ] GUI增加对更改二值化设置的支持
-* [ ] 修复wayland下运行的问题（蔚蓝得毁掉一切😭）
-* [ ] 使用scancode而非vk码，区分检测左右modifiers
+* [x] 完善按键输入识别，支持区分左右modifies
+* [ ] 添加webui设置项
+* [ ] 添加二值化设置项
+* [ ] 让按键输入识别在Wayland下工作（X11情况未知，需要测试）
+* [ ] 修复wayland下resizePanel无法获取窗口位置的问题（大概差不多可能是修不了，蔚蓝得毁掉一切😭）
