@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Panel</title>
+    <title>HD2AS Control Panel</title>
     <style>
         * {
             margin: 0;
@@ -27,6 +27,7 @@
             gap: 20px;
             max-width: 1200px;
             margin: 0 auto;
+            position: relative;
         }
 
         @media (orientation: landscape) {
@@ -178,6 +179,46 @@
                 transform: scale(0.9);
             }
         }
+
+        /* 新增无数据提示样式 */
+        .no-data-msg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .no-data-icon {
+            width: 80%;
+            height: 80%;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .no-data-text {
+            color: gold;
+            font-size: 2.5em;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
     </style>
 </head>
 
@@ -199,7 +240,9 @@
 
         // 长按检测
         let longPressTimer;
+        let autoHideTimer;
         const longPressTime = 500;
+        const autoHideDelay = 2000;
 
         // 获取数据
         async function fetchData() {
@@ -209,8 +252,13 @@
                 const response = await fetch('/code');
                 const data = await response.json();
 
-                if (data.code === 0 && data.data.length > 0) {
+                if (data.code === 0) {
                     updateCodes(data.data);
+                }
+                if (codeMap.size <= 0) {
+                    showNoDataMessage(true)
+                } else {
+                    showNoDataMessage(false)
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -336,12 +384,43 @@
                 }, 300);
             });
 
-
-
             codeMap.set(codeItem.code, codeElement);
             container.appendChild(codeElement);
-
         }
+
+        // 显示/隐藏无数据提示
+        function showNoDataMessage(show) {
+            const msgElement = container.querySelector('.no-data-msg');
+            if (show) {
+                if (!msgElement) {
+                    const msgContainer = document.createElement('div');
+                    msgContainer.className = 'no-data-msg';
+
+                    const icon = document.createElement('img');
+                    icon.className = 'no-data-icon';
+                    icon.src = '/favicon.ico';
+                    icon.alt = 'No Data Icon';
+
+                    const text = document.createElement('div');
+                    text.className = 'no-data-text';
+                    text.textContent = 'HD2AS';
+
+                    msgContainer.appendChild(icon);
+                    msgContainer.appendChild(text);
+                    container.appendChild(msgContainer);
+                }
+            } else {
+                if (msgElement) {
+                    msgElement.remove();
+                }
+            }
+        }
+
+        // 初始化检查
+        document.addEventListener('DOMContentLoaded', () => {
+            showNoDataMessage(container.children.length === 0);
+        });
+
         // 启动数据获取
         setInterval(fetchData, 100);
     </script>
