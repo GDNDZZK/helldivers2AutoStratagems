@@ -1,8 +1,10 @@
 import logging
 import time
 import threading
+import random
 from pynput import keyboard
-from pynput.keyboard import Key, KeyCode
+from pynput.keyboard import Key, KeyCode, Controller
+from util.loadSetting import getConfigDict
 
 from util.Util import run_in_thread
 key_dict = {
@@ -363,3 +365,35 @@ class KeyboardListener:
             # 等待线程实际退出
             self.listener_thread.join()
             self.scanner_thread.join()
+
+
+# 随机延迟
+def random_sleep(min: float = 0.05, max: float = 0.1) -> None:
+    time.sleep(random.uniform(min, max))
+
+keyboard_c = Controller()
+def press_and_release(key, config) -> None:
+    """按下并释放一个键"""
+    global keyboard_c
+    delay_min, delay_max = float(config.get('DELAY_MIN',0.05)), float(config.get('DELAY_MAX',0.1))
+    keyboard_c.press(key)
+    random_sleep(delay_min, delay_max)
+    keyboard_c.release(key)
+    random_sleep(delay_min, delay_max)
+
+def c(line_s : str, config = None):
+    # 更新config
+    if not config:
+        config = getConfigDict()
+    for s in line_s:
+        if not s:
+            continue
+        match s:
+            case 'W':
+                press_and_release(key_dict[config.get("W",'<up>')], config)
+            case 'S':
+                press_and_release(key_dict[config.get("S",'<down>')], config)
+            case 'A':
+                press_and_release(key_dict[config.get("A",'<left>')], config)
+            case 'D':
+                press_and_release(key_dict[config.get("D",'<right>')], config)

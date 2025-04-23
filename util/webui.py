@@ -6,8 +6,9 @@ import time
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Form
 
+from util.globalHotKeyManager import c
 from util.loadSetting import getConfigDict
 
 class FastAPIServer:
@@ -39,7 +40,7 @@ class FastAPIServer:
         @self.app.get('/code')
         async def code():
             '''
-            code_list: [{'code' : 'WASD', 'imgUrl' : 'data:image/png;base64,xxx'},...,{...}]
+            code_list: [{'code' : 'WASD', 'imgUrl' : 'data:image/png;base64,xxx','codeImgUrl' : 'data:image/png;base64,xxx'}},...,{...}]
             return:
             ```json
             {
@@ -51,6 +52,15 @@ class FastAPIServer:
             result_dict = {'code': 0, 'data': self.code_list.copy()}
             self.code_list = []
             return result_dict
+
+        @self.app.post('/exec')
+        async def exec(line_s:str = Form() ):
+            # 传入参数字符串line_s
+            try:
+                c(line_s)
+            except Exception as e:
+                return {'code': 1, 'msg': str(e)}
+            return {'code': 0}
 
         # 服务器实例和线程引用
         self._server = None

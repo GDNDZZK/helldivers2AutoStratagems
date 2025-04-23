@@ -367,6 +367,16 @@ def split_image(image_path='./temp/screenshot_binary.bmp', save_dir='./temp/spli
 
     return imgs
 
+def read_bmp_to_png_base64(image_path):
+    try:
+        with open(image_path, 'rb') as f:
+            bmp_data = f.read()
+            # 将字节数据转换为Base64编码并解码为字符串
+            return 'data:image/png;base64,' + base64.b64encode(bmp_data).decode("utf-8")
+    except Exception as e:
+        print(f"Error reading BMP file: {e}")
+        return ''
+
 def image_to_png_base64(image):
     # 创建内存字节缓冲
     with io.BytesIO() as buffer:

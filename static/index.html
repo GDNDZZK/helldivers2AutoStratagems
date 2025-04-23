@@ -1,1 +1,350 @@
-<h1>test</h1>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (orientation: landscape) {
+            .container {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                max-width: 1600px;
+            }
+
+            .code-item {
+                flex: 1 1 550px;
+                max-width: 650px;
+            }
+        }
+
+        .code-item {
+            display: flex;
+            gap: 12px;
+            padding: 18px;
+            background: #2d2d2d;
+            border-radius: 16px;
+            opacity: 1;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .code-item.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .left-section {
+            flex: 0 0 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .right-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-left: 15px;
+            min-width: 0;
+            /* 防止内容溢出 */
+        }
+
+        .code-img-container {
+            width: 100%;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .code-img {
+            width: auto;
+            height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            border-radius: 80px;
+        }
+
+        .main-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+        }
+
+        .divider {
+            width: 100%;
+            height: 2px;
+            background: #444;
+            margin: 12px 0;
+            opacity: 0.3;
+        }
+
+        .instructions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: bold;
+            font-size: 1.3em;
+            padding: 8px 0;
+            width: 100%;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .code-item:hover .delete-btn {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .code-item.loading .main-img {
+            animation: rotate 1s linear infinite;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .add-animation {
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .delete-animation {
+            animation: fadeOut 0.3s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container"></div>
+
+    <script>
+        // JavaScript部分保持不变
+        let isFetching = false;
+        let isExecuting = false;
+        const container = document.querySelector('.container');
+        const codeMap = new Map();
+        const directionMap = {
+            W: '↑',
+            A: '←',
+            S: '↓',
+            D: '→'
+        };
+
+        // 长按检测
+        let longPressTimer;
+        const longPressTime = 500;
+
+        // 获取数据
+        async function fetchData() {
+            if (isExecuting) return;
+
+            try {
+                const response = await fetch('/code');
+                const data = await response.json();
+
+                if (data.code === 0 && data.data.length > 0) {
+                    updateCodes(data.data);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // 更新代码项
+        function updateCodes(newCodes) {
+            newCodes.forEach(codeItem => {
+                const existingItem = codeMap.get(codeItem.code);
+
+                if (existingItem) {
+                    existingItem.querySelector('.main-img').src = codeItem.imgUrl;
+                    existingItem.querySelector('.code-img').src = codeItem.codeImgUrl;
+                } else {
+                    createCodeItem(codeItem);
+                }
+            });
+        }
+
+        // 创建代码项
+        function createCodeItem(codeItem) {
+            const codeElement = document.createElement('div');
+            codeElement.className = 'code-item add-animation';
+            codeElement.dataset.code = codeItem.code;
+            codeElement.innerHTML = `
+                <div class="left-section">
+                    <img class="main-img" src="${codeItem.imgUrl}" alt="Main Image">
+                </div>
+                <div class="right-section">
+                    <div class="code-img-container">
+                        <img class="code-img" src="${codeItem.codeImgUrl}" alt="Code Image">
+                    </div>
+                    <div class="divider"></div>
+                    <div class="instructions">
+                        ${codeItem.code.split('').map(c => 
+                            `<span>${directionMap[c] || c}</span>`
+                        ).join(' ')}
+                    </div>
+                </div>
+                <button class="delete-btn">×</button>
+            `;
+
+            // 点击事件
+
+            codeElement.addEventListener('click', async (e) => {
+                if (isExecuting || codeElement.classList.contains('disabled')) return;
+
+
+
+                isExecuting = true;
+                codeElement.classList.add('loading', 'disabled');
+                container.querySelectorAll('.code-item').forEach(item => {
+                    item.classList.add('disabled');
+                });
+
+
+
+                try {
+                    const response = await fetch('/exec', {
+                        method: 'POST',
+                        body: new URLSearchParams({
+                            line_s: codeItem.code
+                        })
+                    });
+                    const result = await response.json();
+
+
+
+                    if (result.code !== 0) {
+                        alert(`执行失败: ${result.msg}`);
+                    }
+
+                } catch (error) {
+                    alert('执行请求失败');
+                } finally {
+                    codeElement.classList.remove('loading');
+                    container.querySelectorAll('.code-item').forEach(item => {
+                        item.classList.remove('disabled');
+                    });
+                    isExecuting = false;
+                }
+            });
+
+
+
+            // 删除功能
+
+            const deleteBtn = codeElement.querySelector('.delete-btn');
+
+            let touchStartTime;
+
+
+
+            // 触屏设备长按
+            codeElement.addEventListener('touchstart', (e) => {
+                touchStartTime = Date.now();
+                longPressTimer = setTimeout(() => {
+                    deleteBtn.style.opacity = '1';
+                    deleteBtn.style.transform = 'scale(1)';
+                }, longPressTime);
+            });
+
+
+
+            codeElement.addEventListener('touchend', () => {
+                clearTimeout(longPressTimer);
+                if (Date.now() - touchStartTime < longPressTime) {
+                    deleteBtn.style.opacity = '0';
+                    deleteBtn.style.transform = 'scale(0.8)';
+                }
+            });
+
+
+
+            // 删除按钮点击
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                codeElement.classList.add('delete-animation');
+                setTimeout(() => {
+                    codeElement.remove();
+                    codeMap.delete(codeItem.code);
+                }, 300);
+            });
+
+
+
+            codeMap.set(codeItem.code, codeElement);
+            container.appendChild(codeElement);
+
+        }
+        // 启动数据获取
+        setInterval(fetchData, 100);
+    </script>
+</body>
+
+</html>

@@ -8,12 +8,11 @@ import shutil
 import time
 import logging
 from util.Util import run_in_thread
-from util.globalHotKeyManager import GlobalHotKeyManager,key_dict
-from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, fast_arrow, process_images, resize_image, screenshot_icon_crop_to_base64, split_image
+from util.globalHotKeyManager import GlobalHotKeyManager, c
+from util.imageProcessing import arrow_str, binarize_image, capture_screenshot, crop_image, fast_arrow, process_images, read_bmp_to_png_base64, resize_image, screenshot_icon_crop_to_base64, split_image
 from util.settingGUI import settingsGUI
 from util.loadSetting import getConfigDict
 from util.SystemTrayIcon import SystemTrayIcon
-from pynput.keyboard import Controller, Key
 
 from util.webui import FastAPIServer
 try:
@@ -143,39 +142,6 @@ def hotkeyOCR():
             hotkeyOCR_is_running = False
 
 
-# 随机延迟
-def random_sleep(min: float = 0.05, max: float = 0.1) -> None:
-    time.sleep(random.uniform(min, max))
-
-keyboard = Controller()
-def press_and_release(key) -> None:
-    """按下并释放一个键"""
-    global keyboard, config
-    delay_min, delay_max = float(config.get('DELAY_MIN',0.05)), float(config.get('DELAY_MAX',0.1))
-    keyboard.press(key)
-    random_sleep(delay_min, delay_max)
-    keyboard.release(key)
-    random_sleep(delay_min, delay_max)
-
-def c(line_s : str, fast_mode: bool = False):
-    # 更新config
-    global config
-    if not fast_mode:
-        config = getConfigDict()
-    for s in line_s:
-        if not s:
-            continue
-        match s:
-            case 'W':
-                press_and_release(key_dict[config.get("W",'<up>')])
-            case 'S':
-                press_and_release(key_dict[config.get("S",'<down>')])
-            case 'A':
-                press_and_release(key_dict[config.get("A",'<left>')])
-            case 'D':
-                press_and_release(key_dict[config.get("D",'<right>')])
-
-
 hotkeyother_is_running = False
 hotkeyother_lock = threading.Lock()
 @run_in_thread
@@ -218,7 +184,7 @@ def hotkey_other(num: int, fast_mode = False):
 
         code = arrow[num - 1]
         logging.debug(f'执行: {code}')
-        c(code, fast_mode)
+        c(code, config if fast_mode else None)
         if fast_mode:
             # 写出temp/arrow.txt
             with file_lock:
@@ -235,7 +201,7 @@ def hotkey_other(num: int, fast_mode = False):
 def srv_set_code(codes:list[str]):
     global srv,config
     '''
-    code_list: [{'code' : 'WASD', 'imgUrl' : 'data:image/png;base64,xxx'},...,{...}]
+    code_list: [{'code' : 'WASD', 'imgUrl' : 'data:image/png;base64,xxx','codeImgUrl' : 'data:image/png;base64,xxx'},...,{...}]
     '''
     result = []
     with open('./temp/screenshot_icon_point.json', 'r', encoding='utf-8') as f:
@@ -244,7 +210,8 @@ def srv_set_code(codes:list[str]):
         crop_point = code_icon_point[idx]
         line = {
             'code' : code_line,
-            'imgUrl' : screenshot_icon_crop_to_base64(crop_point)
+            'imgUrl' : screenshot_icon_crop_to_base64(crop_point),
+            'codeImgUrl' : read_bmp_to_png_base64(f'./temp/split_images/{idx}.bmp')
         }
         result.append(line)
     srv.set_code_list(result)
