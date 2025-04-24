@@ -381,10 +381,15 @@ def press_and_release(key, config) -> None:
     keyboard_c.release(key)
     random_sleep(delay_min, delay_max)
 
-def c(line_s : str, config = None):
+def c(line_s : str, config = None, activation = False):
+    global keyboard_c
     # 更新config
     if not config:
         config = getConfigDict()
+    if activation:
+        delay_min, delay_max = float(config.get('DELAY_MIN',0.05)), float(config.get('DELAY_MAX',0.1))
+        keyboard_c.press(key_dict[config.get("ACTIVATION",'<ctrl_l>')])
+        random_sleep(delay_min, delay_max)
     for s in line_s:
         if not s:
             continue
@@ -397,3 +402,5 @@ def c(line_s : str, config = None):
                 press_and_release(key_dict[config.get("A",'<left>')], config)
             case 'D':
                 press_and_release(key_dict[config.get("D",'<right>')], config)
+    if activation:
+        keyboard_c.release(key_dict[config.get("ACTIVATION",'<ctrl_l>')])

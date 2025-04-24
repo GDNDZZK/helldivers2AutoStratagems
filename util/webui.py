@@ -57,7 +57,7 @@ class FastAPIServer:
         async def exec(line_s:str = Form() ):
             # 传入参数字符串line_s
             try:
-                c(line_s)
+                c(line_s,activation=True)
             except Exception as e:
                 return {'code': 1, 'msg': str(e)}
             return {'code': 0}

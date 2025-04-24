@@ -64,11 +64,13 @@ SKEYANDOCR8=<f8>
 SKEYANDOCR9=<f9>
 SKEYANDOCR10=<f10>
 
+; 打开战备面板
+ACTIVATION=<ctrl_l>
 ; 设置战备按键
-W=<up>
-A=<left>
-S=<down>
-D=<right>
+W=<W>
+A=<A>
+S=<S>
+D=<D>
 
 ; 战备面板识别区域
 LEFT=30
