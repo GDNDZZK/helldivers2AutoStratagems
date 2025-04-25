@@ -8,7 +8,7 @@ from util.loadSetting import getConfigFilePath, saveConfigDict, getConfigDict, g
 from util.imageProcessing import capture_screenshot, crop_image, resize_image
 
 from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox, QDialog, QVBoxLayout, QLineEdit
-from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices
+from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices, QIcon
 from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer, QObject, pyqtSignal
 
 keys = set()
@@ -32,7 +32,8 @@ class keyBindingDialog(QDialog):
 
         self.pressed_keys = []
 
-        self.setWindowTitle("QDialog")
+        self.setWindowTitle("按键输入")
+        self.setWindowIcon(QIcon("./icon.png"))
         self.setFixedSize(200, 100)
 
         self.label = QLabel("等待输入...", self)
@@ -118,7 +119,9 @@ class keyBindingPanel(QWidget):
             "ACTIVATION": ["战备面板", self.config.get("ACTIVATION", "")]
         }
 
-        self.setWindowTitle("QWidget")
+        self.setWindowTitle("HD2AS 按键设置")
+        # 设置图标
+        self.setWindowIcon(QIcon("./icon.png"))
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         self.initWidgets()
@@ -214,7 +217,7 @@ class resizePanel(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setMouseTracking(True)
-        self.setWindowTitle("QWidget")
+        self.setWindowTitle("区域选择框")
 
         self.resize(max(self.MIN_W, w), max(self.MIN_H, h))
         self.move(x, y)
@@ -369,7 +372,8 @@ class settingPanel(QWidget):
         self.keybinds = {}
         self.is_closed = True
 
-        self.setWindowTitle("QWidget")
+        self.setWindowTitle("HD2AS 设置面板")
+        self.setWindowIcon(QIcon("./icon.png"))
         self.setFixedSize(200, 410)
 
         self.initWidgets()
@@ -406,7 +410,7 @@ class settingPanel(QWidget):
 
         # manual edit button #
 
-        self.manual_edit_button = QPushButton("（高级）手动编辑配置文件", self)
+        self.manual_edit_button = QPushButton("(高级)手动编辑配置文件", self)
         self.manual_edit_button.setGeometry(10, 335, 180, 30)
 
         self.manual_edit_button.clicked.connect(self.onManualEditButtonCliecked)
@@ -536,7 +540,7 @@ class settingPanel(QWidget):
     # reset button #
     def onResetButtonCliecked(self):
         message_box = QMessageBox(self)
-        message_box.setWindowTitle("QMessageBox")
+        message_box.setWindowTitle("警告")
         message_box.setText("你正在执行的操作：重置所有设置<br/><font color='red'>警告：此操作不可逆</font>")
         message_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         message_box.setDefaultButton(QMessageBox.StandardButton.No)
@@ -598,7 +602,7 @@ class settingPanel(QWidget):
     # manual edit button #
     def onManualEditButtonCliecked(self):
         message_box = QMessageBox(self)
-        message_box.setWindowTitle("QMessageBox")
+        message_box.setWindowTitle("警告")
         message_box.setText("<font color='red'>这会放弃所有未保存的改动</font><br/>要继续吗？")
         message_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         message_box.setDefaultButton(QMessageBox.StandardButton.No)
