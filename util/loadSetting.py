@@ -53,16 +53,16 @@ SKEY9=<ctrl_l>+<9>|<ctrl_r>+<9>
 SKEY10=<ctrl_l>+<0>|<ctrl_r>+<0>
 
 ; 干扰器优化模式战备按键,每次使用战备都会重新识别,不会输出中间文件,不会实时更新设置.由于每次使用战备都会重新识别,所以还是会比识别完成后使用慢,但会比先识别后使用快.
-SKEYANDOCR1=<f1>
-SKEYANDOCR2=<f2>
-SKEYANDOCR3=<f3>
-SKEYANDOCR4=<f4>
-SKEYANDOCR5=<f5>
-SKEYANDOCR6=<f6>
-SKEYANDOCR7=<f7>
-SKEYANDOCR8=<f8>
-SKEYANDOCR9=<f9>
-SKEYANDOCR10=<f10>
+SKEYANDOCR1=<ctrl_l>+<f1>|<ctrl_r>+<f1>
+SKEYANDOCR2=<ctrl_l>+<f2>|<ctrl_r>+<f2>
+SKEYANDOCR3=<ctrl_l>+<f3>|<ctrl_r>+<f3>
+SKEYANDOCR4=<ctrl_l>+<f4>|<ctrl_r>+<f4>
+SKEYANDOCR5=<ctrl_l>+<f5>|<ctrl_r>+<f5>
+SKEYANDOCR6=<ctrl_l>+<f6>|<ctrl_r>+<f6>
+SKEYANDOCR7=<ctrl_l>+<f7>|<ctrl_r>+<f7>
+SKEYANDOCR8=<ctrl_l>+<f8>|<ctrl_r>+<f8>
+SKEYANDOCR9=<ctrl_l>+<f9>|<ctrl_r>+<f9>
+SKEYANDOCR10=<ctrl_l>+<f10>|<ctrl_r>+<f10>
 
 ; 打开战备面板
 ACTIVATION=<ctrl_l>
