@@ -90,7 +90,7 @@ DELAY_MAX=0.08
 ; GUI是否应该随着程序启动
 START_GUI_WITH_PROGRAM=True
 WEB_GUI_PORT=80
-WEB_GUI_HOST=0.0.0.0
+WEB_GUI_HOST=all
 '''
 
 def getConfigFilePath(filename: str = 'config.ini') -> str:

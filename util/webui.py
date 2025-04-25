@@ -83,7 +83,7 @@ class FastAPIServer:
         # 配置 uvicorn
         config = uvicorn.Config(
             app=self.app,
-            host=config_dict['WEB_GUI_HOST'],
+            host=config_dict['WEB_GUI_HOST'] if config_dict['WEB_GUI_HOST'] and config_dict['WEB_GUI_HOST'].upper() != 'ALL' else None,
             port=int(float(config_dict['WEB_GUI_PORT'])),
             log_level="info",
             lifespan="on",
