@@ -241,9 +241,10 @@ def onlySettingGuiMain():
     global config
     config = getConfigDict()
     hotkeyManager = GlobalHotKeyManager()
-    GUI = settingsGUI(config)
+    GUI = settingsGUI(config, hotkeyManager)
     hotkeyManager.auto_register(config, hotkeyOCR, GUI.open_settings_gui, hotkey_other)
     GUI.open_settings_gui()
+    GUI.execute()
 
 if __name__ == '__main__':
     print(f'''helldivers2AutoStratagems {version} Copyright (C) 2025 GDNDZZK

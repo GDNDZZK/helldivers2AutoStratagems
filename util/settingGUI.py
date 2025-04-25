@@ -1,11 +1,13 @@
 import os
 import time
 
+import re
+
 from util.globalHotKeyManager import GlobalHotKeyManager, KeyboardListener, vk_to_key_str
 from util.loadSetting import getConfigFilePath, saveConfigDict, getConfigDict, getDefaultConfigDict
 from util.imageProcessing import capture_screenshot, crop_image, resize_image
 
-from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox, QDialog, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox, QDialog, QVBoxLayout, QLineEdit
 from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices
 from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer, QObject, pyqtSignal
 
@@ -112,6 +114,10 @@ class keyBindingPanel(QWidget):
             "D": ["右", self.config.get("D", "")]
         }
 
+        self.ACTIVATION = {
+            "ACTIVATION": ["战备面板", self.config.get("ACTIVATION", "")]
+        }
+
         self.setWindowTitle("QWidget")
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
@@ -170,7 +176,8 @@ class keyBindingPanel(QWidget):
 
         self.ok_button = QPushButton("完成", self)
         h += 20
-        self.ok_button.setGeometry(10, h, 380, 30)
+        createKeybindingWidget_groups(self.ACTIVATION, h)
+        self.ok_button.setGeometry(205, h, 190, 30)
         h += 30
         self.ok_button.clicked.connect(self.parent.onKeybindingOk)
 
@@ -185,7 +192,6 @@ class keyBindingPanel(QWidget):
 
         self.textEdits[key_name].setPlainText('+'.join(vk_to_key_str(key) for key in dialog.pressed_keys))
         dialog.deleteLater()
-
 
 class resizePanel(QWidget):
 
@@ -308,6 +314,50 @@ class resizePanel(QWidget):
         self.resize_corner = None
 
 
+class ipInputer(QLineEdit):
+    def __init__(self, parent, defalutText):
+        super().__init__(parent)
+
+        self.setPlaceholderText("Host [ipv4 / ipv6]")
+        self.setText(defalutText)
+
+        self.textChanged.connect(self.onTextChanged)
+
+    def onTextChanged(self):
+        if self.isValidIpAddress(self.text()):
+            self.setStyleSheet("background-color: white;")
+        else:
+            self.setStyleSheet("background-color: #ffaaaa;")
+
+    def isValidIpAddress(self, text):
+        ipv4 = r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+        ipv6 = r'^([0-9a-fA-F]{1,4}:){7}([0-9a-fA-F]{1,4})$|^([0-9a-fA-F]{1,4}:){1,7}:$|^::([0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,6}:([0-9a-fA-F]{1,4})$|^([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}$|^([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}$|^([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}$|^([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}$|^([0-9a-fA-F]{1,4}:){1}(:[0-9a-fA-F]{1,4}){1,6}$|^:((:[0-9a-fA-F]{1,4}){1,7}|:)$'
+
+        pattern = re.compile(rf'^({ipv4}|{ipv6})$')
+        return pattern.fullmatch(text)
+
+class portInputer(QLineEdit):
+    def __init__(self, parent, defalutText):
+        super().__init__(parent)
+
+        self.setPlaceholderText("Port")
+        self.setText(defalutText)
+
+        self.textChanged.connect(self.onTextChanged)
+
+    def onTextChanged(self):
+        if self.isValidPort(self.text()):
+            self.setStyleSheet("background-color: white;")
+        else:
+            self.setStyleSheet("background-color: #ffaaaa;")
+
+    def isValidPort(self, text):
+        port = r'^(0|[1-9][0-9]{0,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|65535)$'
+
+        pattern = re.compile(port)
+        return pattern.fullmatch(text)
+
+
 class settingPanel(QWidget):
 
     def __init__(self, qApp, config: dict, hotkeyManager: GlobalHotKeyManager):
@@ -320,7 +370,7 @@ class settingPanel(QWidget):
         self.is_closed = True
 
         self.setWindowTitle("QWidget")
-        self.setFixedSize(200, 350)
+        self.setFixedSize(200, 410)
 
         self.initWidgets()
 
@@ -329,7 +379,7 @@ class settingPanel(QWidget):
         # reset button #
 
         self.reset_button = QPushButton("重置所有设置", self)
-        self.reset_button.setGeometry(10, 310, 85, 30)
+        self.reset_button.setGeometry(10, 370, 85, 30)
         self.reset_button.setStyleSheet("color: red;")
 
         self.reset_button.clicked.connect(self.onResetButtonCliecked)
@@ -339,7 +389,7 @@ class settingPanel(QWidget):
         # save button #
 
         self.save_button = QPushButton("保存所有设置", self)
-        self.save_button.setGeometry(105, 310, 85, 30)
+        self.save_button.setGeometry(105, 370, 85, 30)
 
         self.save_button.clicked.connect(self.onSaveButtonCliecked)
 
@@ -348,7 +398,7 @@ class settingPanel(QWidget):
         # start with program #
 
         self.start_with_program_checkbox = QCheckBox("允许设置面板随程序开启", self)
-        self.start_with_program_checkbox.setGeometry(10, 250, 180, 20)
+        self.start_with_program_checkbox.setGeometry(10, 310, 180, 20)
         self.start_with_program_checkbox.setChecked(self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE")
         # this checkbox state will be saved when save button cliecked
 
@@ -357,7 +407,7 @@ class settingPanel(QWidget):
         # manual edit button #
 
         self.manual_edit_button = QPushButton("（高级）手动编辑配置文件", self)
-        self.manual_edit_button.setGeometry(10, 275, 180, 30)
+        self.manual_edit_button.setGeometry(10, 335, 180, 30)
 
         self.manual_edit_button.clicked.connect(self.onManualEditButtonCliecked)
 
@@ -446,6 +496,25 @@ class settingPanel(QWidget):
 
         # resize panel end #
 
+        # webui #
+
+        webui_label = QLabel("========  WebUI 设置  ========", self)
+        webui_label.setGeometry(10, 235, 180, 25)
+        webui_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.host_lineedit = ipInputer(self, self.config.get("WEB_GUI_HOST", ""))
+        self.host_lineedit.setGeometry(10, 260, 110, 30)
+
+        colon_label = QLabel(":", self)
+        colon_label.setGeometry(120, 260, 10, 30)
+        colon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.port_lineedit = portInputer(self, str(self.config.get("WEB_GUI_PORT", "")))
+        self.port_lineedit.setGeometry(130, 260, 60, 30)
+
+
+        # webui end #
+
         widgets = [
             self.delay_min_spinbox,
             self.delay_max_spinbox,
@@ -498,18 +567,26 @@ class settingPanel(QWidget):
 
         newConfig = dict(self.keybinds)
 
-        newConfig .update({
-            "DELAY_MIN": self.delay_min_spinbox.value(),
-            "DELAY_MAX": self.delay_max_spinbox.value(),
-            #"ACTIVATION": self.keybind_label.toPlainText(),
+        try:
+            newConfig .update({
+                "DELAY_MIN": self.delay_min_spinbox.value(),
+                "DELAY_MAX": self.delay_max_spinbox.value(),
+                #"ACTIVATION": self.keybind_label.toPlainText(),
 
-            "LEFT": int(self.size_x_spinbox.value()),
-            "TOP": int(self.size_y_spinbox.value()),
-            "RIGHT": int(self.size_w_spinbox.value()),
-            "BOTTOM": int(self.size_h_spinbox.value()),
+                "LEFT": int(self.size_x_spinbox.value()),
+                "TOP": int(self.size_y_spinbox.value()),
+                "RIGHT": int(self.size_w_spinbox.value()),
+                "BOTTOM": int(self.size_h_spinbox.value()),
 
-            "START_GUI_WITH_PROGRAM": "True" if self.start_with_program_checkbox.isChecked() else "False"
-        })
+                "START_GUI_WITH_PROGRAM": "True" if self.start_with_program_checkbox.isChecked() else "False",
+
+                "WEB_GUI_PORT": int(self.port_lineedit.text()),
+                "WEB_GUI_HOST": self.host_lineedit.text()
+            })
+        except Exception as e:
+            QMessageBox.critical(self, 'QMessageBox', '保存时发生错误！目前没有执行任何操作\n' + str(e), QMessageBox.StandardButton.Ok)
+            return
+
 
         saveConfigDict(newConfig)
         self.config = getConfigDict()
@@ -698,7 +775,7 @@ class settingsGUI(QObject):
         self.hotkeyMgr.stop()
 
         if os.environ.get('WAYLAND_DISPLAY') is not None:
-            QMessageBox.critical(self.window, 'Error', '此软件无法在Wayland环境下使用\n详见：\nhttps://github.com/BoboTiG/python-mss/issues/155', QMessageBox.StandardButton.Ok)
+            QMessageBox.critical(self.window, 'QMessageBox', '此软件无法在Wayland环境下使用\n详见：\nhttps://github.com/BoboTiG/python-mss/issues/155', QMessageBox.StandardButton.Ok)
 
     def open_settings_gui(self):
         # make sure is running on main thread
