@@ -20,7 +20,7 @@ try:
 except ModuleNotFoundError:
     logging.warning('winsound not found, beep will not work')
 
-version = 'dev'
+version = 'v1.0.0'
 
 def checkPath():
     """确保工作路径正确"""
@@ -235,6 +235,7 @@ def main():
     # 等待sti线程结束后退出
     sti_thread.join()
     hotkeyManager.stop()
+    srv.stop()
 
 def onlySettingGuiMain():
     checkPath()

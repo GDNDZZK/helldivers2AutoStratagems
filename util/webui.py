@@ -1,15 +1,46 @@
-import json
-import os
+import sys
 import threading
 import time
 
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 from fastapi import FastAPI, Form
 
 from util.globalHotKeyManager import c
 from util.loadSetting import getConfigDict
+import logging
+from pathlib import Path
+from logging import Filter
+import re
+
+if getattr(sys, 'frozen', False):
+    # 打包后重定向日志到文件
+    log_path = Path(sys.executable).parent / 'webui.log'
+    sys.stdout = open(log_path, 'w')
+    sys.stderr = sys.stdout
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+
+class EndpointFilter(Filter):
+    """过滤指定端点的访问日志"""
+    def __init__(self, excluded_endpoints: list):
+        super().__init__()
+        self.excluded_endpoints = excluded_endpoints
+        # 匹配日志中的请求方法和路径
+        self.pattern = re.compile(
+            r'"(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\s+([^\s?]+)'
+        )
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        match = self.pattern.search(msg)
+        if match:
+            method, path = match.groups()
+            path = path.rstrip('/') or '/'  # 标准化路径
+            if path in self.excluded_endpoints:
+                return False
+        return True
 
 class FastAPIServer:
     def __init__(self):
@@ -65,6 +96,22 @@ class FastAPIServer:
         # 服务器实例和线程引用
         self._server = None
         self._thread = None
+        # 添加日志过滤配置
+        self._configure_access_log_filter()
+
+    def _configure_access_log_filter(self):
+        """配置需要排除的接口路径"""
+        excluded_endpoints = [
+            "/code",
+        ]
+
+        uvicorn_access_logger = logging.getLogger("uvicorn.access")
+        # 清理旧过滤器
+        for f in uvicorn_access_logger.filters[:]:
+            if isinstance(f, EndpointFilter):
+                uvicorn_access_logger.removeFilter(f)
+        # 添加新过滤器
+        uvicorn_access_logger.addFilter(EndpointFilter(excluded_endpoints))
 
     def set_code_list(self, new_code_list : list):
         self.code_list = new_code_list
