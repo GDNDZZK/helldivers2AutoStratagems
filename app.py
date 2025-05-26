@@ -111,8 +111,8 @@ def hotkeyOCR():
         start_time = time.time()
         capture_screenshot()
         di()
-        resize_image()
         crop_image()
+        resize_image()
 
         binarize_image()
         split_image()
