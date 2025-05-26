@@ -582,7 +582,7 @@ def capture_screenshot(save_path='./temp/screenshot.png',fast_mode=False):
         os.makedirs('./temp')
     with mss.mss() as sct:
         # 获取屏幕的尺寸
-        monitor = sct.monitors[1]
+        monitor = sct.monitors[int(getConfigDict().get("MONITOR", ""))]
 
         # 获取屏幕截图
         screenshot = sct.grab(monitor)
