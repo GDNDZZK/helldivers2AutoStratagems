@@ -1,5 +1,6 @@
 import os
 import time
+import mss
 
 import re
 
@@ -7,7 +8,7 @@ from util.globalHotKeyManager import GlobalHotKeyManager, KeyboardListener, vk_t
 from util.loadSetting import getConfigFilePath, saveConfigDict, getConfigDict, getDefaultConfigDict
 from util.imageProcessing import capture_screenshot, crop_image, resize_image
 
-from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox, QDialog, QVBoxLayout, QLineEdit
+from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox, QDialog, QVBoxLayout, QLineEdit, QComboBox
 from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices, QIcon
 from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer, QObject, pyqtSignal
 
@@ -374,7 +375,7 @@ class settingPanel(QWidget):
 
         self.setWindowTitle("HD2AS 设置面板")
         self.setWindowIcon(QIcon("./icon.png"))
-        self.setFixedSize(200, 410)
+        self.setFixedSize(200, 440)
 
         self.initWidgets()
 
@@ -383,7 +384,7 @@ class settingPanel(QWidget):
         # reset button #
 
         self.reset_button = QPushButton("重置所有设置", self)
-        self.reset_button.setGeometry(10, 370, 85, 30)
+        self.reset_button.setGeometry(10, 400, 85, 30)
         self.reset_button.setStyleSheet("color: red;")
 
         self.reset_button.clicked.connect(self.onResetButtonCliecked)
@@ -393,7 +394,7 @@ class settingPanel(QWidget):
         # save button #
 
         self.save_button = QPushButton("保存所有设置", self)
-        self.save_button.setGeometry(105, 370, 85, 30)
+        self.save_button.setGeometry(105, 400, 85, 30)
 
         self.save_button.clicked.connect(self.onSaveButtonCliecked)
 
@@ -402,7 +403,7 @@ class settingPanel(QWidget):
         # start with program #
 
         self.start_with_program_checkbox = QCheckBox("允许设置面板随程序开启", self)
-        self.start_with_program_checkbox.setGeometry(10, 310, 180, 20)
+        self.start_with_program_checkbox.setGeometry(10, 340, 180, 20)
         self.start_with_program_checkbox.setChecked(self.config.get("START_GUI_WITH_PROGRAM", "True").upper() == "TRUE")
         # this checkbox state will be saved when save button cliecked
 
@@ -411,7 +412,7 @@ class settingPanel(QWidget):
         # manual edit button #
 
         self.manual_edit_button = QPushButton("(高级)手动编辑配置文件", self)
-        self.manual_edit_button.setGeometry(10, 335, 180, 30)
+        self.manual_edit_button.setGeometry(10, 365, 180, 30)
 
         self.manual_edit_button.clicked.connect(self.onManualEditButtonCliecked)
 
@@ -478,24 +479,37 @@ class settingPanel(QWidget):
         resize_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
-        self.size_x_spinbox = createSpinbox_resizePanel( "左:", 135, True )
+        self.size_x_spinbox = createSpinbox_resizePanel("左:", 135, True)
         self.size_x_spinbox.setValue(float(self.config.get("LEFT", "")))
 
-        self.size_y_spinbox = createSpinbox_resizePanel( "上:", 165, True )
+        self.size_y_spinbox = createSpinbox_resizePanel("上:", 165, True)
         self.size_y_spinbox.setValue(float(self.config.get("TOP", "")))
 
-        self.size_w_spinbox = createSpinbox_resizePanel( "右:", 135, False )
+        self.size_w_spinbox = createSpinbox_resizePanel("右:", 135, False)
         self.size_w_spinbox.setValue(float(self.config.get("RIGHT", "")))
 
-        self.size_h_spinbox = createSpinbox_resizePanel( "下:", 165, False )
+        self.size_h_spinbox = createSpinbox_resizePanel("下:", 165, False)
         self.size_h_spinbox.setValue(float(self.config.get("BOTTOM", "")))
 
+        #monitor_label = QLabel("显示器:", self)
+        #monitor_label.setGeometry(10, 200, 40, 30)
+        self.monitor_combobox = QComboBox(self)
+        self.monitor_combobox.setGeometry(10, 200, 180, 30)
+
+        with mss.mss() as sct:
+            for index, monitor in enumerate(sct.monitors):
+                if index == 0:
+                    continue
+
+                info = f"显示器 {index}: {monitor['width']}x{monitor['height']} 位于 ({monitor['left']}, {monitor['top']})"
+                self.monitor_combobox.addItem(info, index)
+
         self.resize_button = QPushButton("交互式更改", self)
-        self.resize_button.setGeometry(10, 200, 85, 30)
+        self.resize_button.setGeometry(10, 235, 85, 30)
         self.resize_button.clicked.connect(self.onResizeButtonCliecked)
 
         self.resize_test_button = QPushButton("截图测试", self)
-        self.resize_test_button.setGeometry(105, 200, 85, 30)
+        self.resize_test_button.setGeometry(105, 235, 85, 30)
         self.resize_test_button.clicked.connect(self.onResizeTestButtonCliecked)
 
         # resize panel end #
@@ -503,18 +517,18 @@ class settingPanel(QWidget):
         # webui #
 
         webui_label = QLabel("========  WebUI 设置  ========", self)
-        webui_label.setGeometry(10, 235, 180, 25)
+        webui_label.setGeometry(10, 270, 180, 25)
         webui_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.host_lineedit = ipInputer(self, self.config.get("WEB_GUI_HOST", ""))
-        self.host_lineedit.setGeometry(10, 260, 110, 30)
+        self.host_lineedit.setGeometry(10, 295, 110, 30)
 
         colon_label = QLabel(":", self)
-        colon_label.setGeometry(120, 260, 10, 30)
+        colon_label.setGeometry(120, 295, 10, 30)
         colon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.port_lineedit = portInputer(self, str(self.config.get("WEB_GUI_PORT", "")))
-        self.port_lineedit.setGeometry(130, 260, 60, 30)
+        self.port_lineedit.setGeometry(130, 295, 60, 30)
 
 
         # webui end #
@@ -581,6 +595,8 @@ class settingPanel(QWidget):
                 "TOP": int(self.size_y_spinbox.value()),
                 "RIGHT": int(self.size_w_spinbox.value()),
                 "BOTTOM": int(self.size_h_spinbox.value()),
+
+                "MONITOR": int(self.monitor_combobox.currentData()),
 
                 "START_GUI_WITH_PROGRAM": "True" if self.start_with_program_checkbox.isChecked() else "False",
 
