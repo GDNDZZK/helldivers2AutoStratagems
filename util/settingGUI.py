@@ -657,7 +657,7 @@ class settingPanel(QWidget):
         }
 
         capture_screenshot(path)
-        resize_image(path,path)
+        # resize_image(path,path)
         crop_image(path,path,config=config)
         QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
@@ -676,9 +676,6 @@ class settingPanel(QWidget):
 
         screen_size = self.qApp.primaryScreen().size()
         sw, sh = screen_size.width(), screen_size.height()
-        # convert imageProcessing format to absolute position
-        x, y = self.reverse_scale_coordinate((sw, sh), (x, y))
-        w, h = self.reverse_scale_coordinate((sw, sh), (w, h))
         # make absolute position to window size
         w, h = w - x, h - y
 
@@ -704,9 +701,6 @@ class settingPanel(QWidget):
         screen_size = self.qApp.primaryScreen().size()
         sw, sh = screen_size.width(), screen_size.height()
         # scale to same format with imageProcessing
-        x, y = self.scale_coordinate((sw, sh), (x, y))
-        w, h = self.scale_coordinate((sw, sh), (w, h))
-
         self.size_x_spinbox.setValue(x)
         self.size_y_spinbox.setValue(y)
         self.size_w_spinbox.setValue(w)
@@ -719,26 +713,6 @@ class settingPanel(QWidget):
             return
         self.show()
 
-    # scale to same format with imageProcessing
-    def scale_coordinate(self, original_resolution, original_point):
-        original_width, original_height = original_resolution
-        if original_height == 0:
-            raise ValueError("Original height cannot be zero")
-        scale = 720 / original_height
-        new_x = original_point[0] * scale
-        new_y = original_point[1] * scale
-        return (new_x, new_y)
-
-    # convert imageProcessing format to absolute position
-    def reverse_scale_coordinate(self, original_resolution, scaled_point):
-        original_width, original_height = original_resolution
-        if original_height == 0:
-            raise ValueError("Original height cannot be zero")
-        scale = 720 / original_height
-        original_x = scaled_point[0] / scale
-        original_y = scaled_point[1] / scale
-        return (original_x, original_y)
-    # resize panel end #
 
     def showEvent(self, event):
         self.is_closed = False

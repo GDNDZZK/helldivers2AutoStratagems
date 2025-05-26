@@ -471,7 +471,7 @@ def binarize_image_core(threshold, colors, img):
             img_binary.putpixel((x, y), gray_value)
     return img_binary
 
-def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./temp/screenshot_binary.bmp', threshold=None, config = None, fast_mode = False, img = None):
+def binarize_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_binary.bmp', threshold=None, config = None, fast_mode = False, img = None):
     """
     将PNG图片按规则二值化并保存为BMP格式。
 
@@ -504,7 +504,7 @@ def binarize_image(input_path='./temp/screenshot_cropped.png', output_path='./te
         logging.warning(f"处理图片时发生错误: {e}")
 
 
-def crop_image(input_path='./temp/screenshot_resized.png', output_path='./temp/screenshot_cropped.png', left=None, top=None, right=None, bottom=None, config = None,fast_mode = False, img = None):
+def crop_image(input_path='./temp/screenshot.png', output_path='./temp/screenshot_cropped.png', left=None, top=None, right=None, bottom=None, config = None,fast_mode = False, img = None):
     """
     截取PNG图片的左上角区域并保存。
 
@@ -546,8 +546,8 @@ def resize_image_core(img):
     # 计算新的尺寸，保持宽高比
     original_width, original_height = img.size
     aspect_ratio = original_height / original_width
-    new_height = 720
-    new_width = int(new_height / aspect_ratio)
+    new_width = 190
+    new_height = int(new_width * aspect_ratio)
     # 调整图片尺寸
     try:
         resized_img = img.resize((new_width, new_height), Image.LANCZOS)
@@ -555,7 +555,7 @@ def resize_image_core(img):
         resized_img = img.resize((new_width, new_height), Image.ANTIALIAS)
     return resized_img
 
-def resize_image(input_path='./temp/screenshot.png', output_path='./temp/screenshot_resized.png'):
+def resize_image(input_path='./temp/screenshot_cropped.png', output_path='./temp/screenshot_resized.png'):
     """
     等比例地将PNG图片的高度缩放到720像素并保存。
 
@@ -582,7 +582,7 @@ def capture_screenshot(save_path='./temp/screenshot.png',fast_mode=False):
         os.makedirs('./temp')
     with mss.mss() as sct:
         # 获取屏幕的尺寸
-        monitor = sct.monitors[1]
+        monitor = sct.monitors[0]
 
         # 获取屏幕截图
         screenshot = sct.grab(monitor)
@@ -597,8 +597,8 @@ def capture_screenshot(save_path='./temp/screenshot.png',fast_mode=False):
 def fast_arrow(config, img = None):
     if img is None:
         img = capture_screenshot(fast_mode=True)
-    img = resize_image_core(img)
     img = crop_image(img=img, fast_mode=True, config=config)
+    img = resize_image_core(img)
     img = binarize_image(img=img, fast_mode=True, config=config)
     imgs = split_image(img=img, fast_mode=True)
     imgss = process_images(fast_mode=True, imgs=imgs)
@@ -613,8 +613,8 @@ if __name__ == "__main__":
     # print(f'耗时: {time.time() - start_time} 秒')
     start_time = time.time()
     # capture_screenshot()
-    resize_image()
     crop_image()
+    resize_image()
 
     binarize_image()
     split_image()
