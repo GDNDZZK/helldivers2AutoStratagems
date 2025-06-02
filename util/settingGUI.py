@@ -657,7 +657,6 @@ class settingPanel(QWidget):
         }
 
         capture_screenshot(path)
-        # resize_image(path,path)
         crop_image(path,path,config=config)
         QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
@@ -673,9 +672,6 @@ class settingPanel(QWidget):
 
 
         x, y, w, h = int(self.size_x_spinbox.value()), int(self.size_y_spinbox.value()), int(self.size_w_spinbox.value()), int(self.size_h_spinbox.value())
-
-        screen_size = self.qApp.primaryScreen().size()
-        sw, sh = screen_size.width(), screen_size.height()
         # make absolute position to window size
         w, h = w - x, h - y
 
@@ -685,9 +681,11 @@ class settingPanel(QWidget):
 
     def onResizeSaved(self):
         x, y, w, h = self.overlay_resize.geometry().getRect()
-        # change window size to absolute position
+        # defensive fix
         if w is None or h is None or x is None or y is None:
-            raise ValueError("Window size cannot be None")
+            QMessageBox.critical(self, 'QMessageBox', '无法从交互式面板获取框选区域？！\n当前未进行任何改动', QMessageBox.StandardButton.Ok)
+            return
+        # change window size to absolute position
         w, h = x + w, y + h
 
         # EDIT: haha i cant fix that, no help at all
@@ -698,9 +696,6 @@ class settingPanel(QWidget):
         #    y = point.y()
         #    print("wayland defensive fix, x value:"+ str(x) +" y value:"+ str(y))
 
-        screen_size = self.qApp.primaryScreen().size()
-        sw, sh = screen_size.width(), screen_size.height()
-        # scale to same format with imageProcessing
         self.size_x_spinbox.setValue(x)
         self.size_y_spinbox.setValue(y)
         self.size_w_spinbox.setValue(w)
@@ -712,6 +707,7 @@ class settingPanel(QWidget):
         if self.isVisible():
             return
         self.show()
+    # resize panel end #
 
 
     def showEvent(self, event):
