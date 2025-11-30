@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>绝地潜兵 - 战术控制器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        @font-face {
+            font-family: 'Helldivers';
+            src: local('Arial Black'), local('Impact'), local('sans-serif');
+        }
+
+        body {
+            font-family: 'Helldivers', Arial Black, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #ffcc00;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 扫描线效果 */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 204, 0, 0.03) 2px,
+                    rgba(255, 204, 0, 0.03) 4px);
+            pointer-events: none;
+            z-index: 1;
+            contain: strict;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            position: relative;
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        /* 横屏布局 */
+        @media (orientation: landscape) {
+            .container {
+                flex-direction: row;
+            }
+
+            .display-area {
+                flex: 1;
+                border-right: 3px solid #ffcc00;
+                min-width: 0;
+            }
+
+            .control-panel {
+                width: 400px;
+                max-width: 40vw;
+                flex-shrink: 0;
+            }
+        }
+
+        /* 竖屏布局 */
+        @media (orientation: portrait) {
+            .container {
+                flex-direction: column;
+            }
+
+            .display-area {
+                flex: 1;
+                border-bottom: 3px solid #ffcc00;
+                min-height: 0;
+            }
+
+            .control-panel {
+                height: 400px;
+                max-height: 40vh;
+                flex-shrink: 0;
+            }
+        }
+
+        /* 显示区域 */
+        .display-area {
+            background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+            border: 3px solid #ffcc00;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow:
+                inset 0 0 50px rgba(255, 204, 0, 0.1),
+                0 0 20px rgba(255, 204, 0, 0.3);
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .display-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ffcc00;
+            flex-shrink: 0;
+        }
+
+        .display-title {
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px #ffcc00;
+        }
+
+        .connection-status {
+            padding: 5px 15px;
+            background: #000;
+            border: 2px solid #ffcc00;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .connection-status.connected {
+            background: rgba(0, 255, 0, 0.1);
+            border-color: #00ff00;
+            color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #ff0000;
+            color: #ff0000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            animation: blink 1s infinite;
+        }
+
+        .connection-status.executing {
+            background: rgba(255, 165, 0, 0.1);
+            border-color: #ffa500;
+            color: #ffa500;
+            box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .command-display {
+            flex: 1;
+            background: #000;
+            border: 2px solid #ffcc00;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            letter-spacing: 10px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(255, 204, 0, 0.2);
+            min-width: 0;
+            isolation: isolate;
+        }
+
+        /* ✅ 扫描线动画：3s linear，全局基准节奏 */
+        .command-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.2), transparent);
+            animation: scan 3s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .command-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            justify-content: center;
+            min-width: 0;
+            isolation: isolate;
+        }
+
+        .command-wrapper.scrolling {
+            justify-content: flex-start;
+        }
+
+        /* ✅ 泛光动画：3s linear，与扫描线严格同步 */
+        /* 0% & 100%：弱光；50%：强光（对应扫描线过中心时刻） */
+        @keyframes glow {
+
+            0%,
+            100% {
+                text-shadow:
+                    0 0 15px #ffcc00,
+                    0 0 25px rgba(255, 204, 0, 0.5);
+                filter: drop-shadow(0 0 10px rgba(255, 204, 0, 0.4));
+            }
+
+            50% {
+                text-shadow:
+                    0 0 25px #ffcc00,
+                    0 0 45px rgba(255, 204, 0, 1),
+                    0 0 60px rgba(255, 204, 0, 0.7);
+                filter: drop-shadow(0 0 25px rgba(255, 204, 0, 0.9));
+            }
+        }
+
+        .command-text {
+            white-space: nowrap;
+            position: relative;
+            z-index: 1;
+            /* ✅ 关键：3s linear，与 scan 同周期同相位 */
+            animation: glow 3s linear infinite;
+            transition: all 0.5s ease-out;
+            display: inline-block;
+
+            /* ✅ 占满容器 + 泛光强化 */
+            width: 100%;
+            text-align: center;
+            overflow: visible;
+            filter: drop-shadow(0 0 15px rgba(255, 204, 0, 0.6));
+            isolation: isolate;
+        }
+
+        .command-text span:nth-child(2) {
+            color: rgba(255, 204, 0, 0.6);
+            opacity: 0.8;
+            margin: 0 8px;
+        }
+
+        .command-wrapper.scrolling .command-text {
+            text-align: left;
+        }
+
+        .command-text.executing {
+            /* 执行时保留 glow 同步节奏，叠加更快脉冲 */
+            animation:
+                glow 3s linear infinite,
+                textPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes textPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.03);
+            }
+        }
+
+        .command-text.resetting {
+            animation: resetFade 0.5s ease-out forwards;
+        }
+
+        @keyframes resetFade {
+            0% {
+                opacity: 1;
+                transform: scale(1) rotateX(0deg);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8) rotateX(90deg);
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(0) rotateX(180deg);
+            }
+        }
+
+        /* 滚动容器 */
+        .scrolling-container {
+            display: inline-flex;
+            animation: scrollText 8s linear infinite;
+            width: max-content;
+        }
+
+        @keyframes scrollText {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* 执行状态指示器 */
+        .execution-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffa500;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border: 2px solid #ffa500;
+            border-radius: 5px;
+            display: none;
+            z-index: 10;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .execution-indicator.show {
+            display: block;
+        }
+
+        .execution-indicator::after {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #ffa500;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: dotPulse 1s infinite;
+        }
+
+        @keyframes dotPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border: 3px solid #ffcc00;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .direction-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            flex: 1;
+            max-height: 300px;
+        }
+
+        .dir-btn {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 2px solid #ffcc00;
+            color: #ffcc00;
+            font-size: 36px;
+            cursor: pointer;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 0 10px #ffcc00;
+            touch-action: manipulation;
+        }
+
+        .dir-btn:hover,
+        .dir-btn.touch-active {
+            background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.5);
+        }
+
+        .dir-btn:active,
+        .dir-btn.touch-pressed {
+            transform: scale(0.95);
+            background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+            color: #000;
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.8);
+        }
+
+        .dir-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .dir-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(255, 204, 0, 0.8), transparent);
+            transition: width 0.3s, height 0.3s;
+            transform: translate(-50%, -50%);
+        }
+
+        .dir-btn:active::before,
+        .dir-btn.touch-pressed::before {
+            width: 100%;
+            height: 100%;
+        }
+
+        .dir-btn.up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .dir-btn.left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .dir-btn.right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .dir-btn.down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 15px;
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 2px solid #ffcc00;
+            color: #ffcc00;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.1s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn:hover,
+        .action-btn.touch-active {
+            background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 204, 0, 0.4);
+        }
+
+        .action-btn:active,
+        .action-btn.touch-pressed {
+            transform: translateY(0);
+        }
+
+        .action-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .action-btn.send {
+            background: linear-gradient(135deg, #006600 0%, #004400 100%);
+        }
+
+        .action-btn.send:hover,
+        .action-btn.send.touch-active {
+            background: linear-gradient(135deg, #008800 0%, #006600 100%);
+            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.4);
+        }
+
+        .action-btn.send.executing {
+            background: linear-gradient(135deg, #ff8800 0%, #cc6600 100%);
+            border-color: #ffa500;
+            color: #ffa500;
+            animation: btnPulse 1.5s infinite;
+        }
+
+        @keyframes btnPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 5px 20px rgba(255, 165, 0, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 5px 30px rgba(255, 165, 0, 0.8);
+            }
+        }
+
+        .action-btn.reset {
+            background: linear-gradient(135deg, #660000 0%, #440000 100%);
+        }
+
+        .action-btn.reset:hover,
+        .action-btn.reset.touch-active {
+            background: linear-gradient(135deg, #880000 0%, #660000 100%);
+            box-shadow: 0 5px 20px rgba(255, 0, 0, 0.4);
+        }
+
+        /* 消息提示 */
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #ffcc00;
+            padding: 20px 40px;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 0 50px rgba(255, 204, 0, 0.8);
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.success {
+            border-color: #00ff00;
+            color: #00ff00;
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.8);
+        }
+
+        .message.error {
+            border-color: #ff0000;
+            color: #ff0000;
+            box-shadow: 0 0 50px rgba(255, 0, 0, 0.8);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .command-display {
+                font-size: 32px;
+                letter-spacing: 5px;
+            }
+
+            .dir-btn {
+                font-size: 28px;
+            }
+
+            .action-btn {
+                font-size: 14px;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="display-area">
+            <div class="display-header">
+                <div class="display-title">战术指令</div>
+                <div class="connection-status" id="connectionStatus">检测中...</div>
+            </div>
+            <div class="command-display" id="commandDisplay">
+                <div class="command-wrapper" id="commandWrapper">
+                    <div class="command-text" id="commandText"></div>
+                </div>
+                <div class="execution-indicator" id="executionIndicator">执行中</div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="direction-pad">
+                <button class="dir-btn up" data-dir="▲">▲</button>
+                <button class="dir-btn left" data-dir="◀">◀</button>
+                <button class="dir-btn right" data-dir="▶">▶</button>
+                <button class="dir-btn down" data-dir="▼">▼</button>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn send" id="sendBtn">发送</button>
+                <button class="action-btn reset" id="resetBtn">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <script>
+        let commandSequence = '';
+        let isConnected = false;
+        let lastConnectionStatus = null;
+        let isResetting = false;
+        let isExecuting = false;
+        let lastInputTime = 0;
+        let connectionCheckInterval = null;
+
+        const commandText = document.getElementById('commandText');
+        const commandDisplay = document.getElementById('commandDisplay');
+        const commandWrapper = document.getElementById('commandWrapper');
+        const sendBtn = document.getElementById('sendBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const executionIndicator = document.getElementById('executionIndicator');
+        const message = document.getElementById('message');
+        const dirButtons = document.querySelectorAll('.dir-btn');
+
+        function createMeasureElement() {
+            const measure = document.createElement('div');
+            measure.style.position = 'absolute';
+            measure.style.visibility = 'hidden';
+            measure.style.height = 'auto';
+            measure.style.width = 'auto';
+            measure.style.whiteSpace = 'nowrap';
+            measure.style.fontFamily = getComputedStyle(commandText).fontFamily;
+            measure.style.fontSize = getComputedStyle(commandText).fontSize;
+            measure.style.letterSpacing = getComputedStyle(commandText).letterSpacing;
+            measure.style.fontWeight = getComputedStyle(commandText).fontWeight;
+            document.body.appendChild(measure);
+            return measure;
+        }
+
+        const measureElement = createMeasureElement();
+
+        function addDirection(dir) {
+            if (isResetting || isExecuting) return;
+            const now = Date.now();
+            if (now - lastInputTime < 50) return;
+            lastInputTime = now;
+            commandSequence += dir;
+            updateDisplay();
+            if (navigator.vibrate) navigator.vibrate(30);
+        }
+
+        dirButtons.forEach(btn => {
+            const dir = btn.dataset.dir;
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                btn.classList.add('touch-pressed');
+                addDirection(dir);
+            });
+            btn.addEventListener('mouseup', () => btn.classList.remove('touch-pressed'));
+            btn.addEventListener('mouseleave', () => btn.classList.remove('touch-pressed'));
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                btn.classList.add('touch-pressed');
+                addDirection(dir);
+            }, {
+                passive: false
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                btn.classList.remove('touch-pressed');
+                e.stopPropagation();
+            }, {
+                passive: false
+            });
+            btn.addEventListener('touchcancel', () => btn.classList.remove('touch-pressed'), {
+                passive: false
+            });
+        });
+
+        // ✅ 修复：确保泛光占满
+        function checkScrollNeeded() {
+            if (commandSequence.length === 0) {
+                commandText.innerHTML = '';
+                commandText.classList.remove('scrolling');
+                commandWrapper.classList.remove('scrolling');
+                return;
+            }
+
+            // ✅ 仍只测原始指令宽度（不含 |）
+            measureElement.textContent = commandSequence;
+            const textWidth = measureElement.offsetWidth;
+            const wrapperWidth = commandWrapper.offsetWidth;
+
+            if (textWidth > wrapperWidth) {
+                // ✅ 滚动时：A + '|' + A，用 span 分隔
+                const container = document.createElement('div');
+                container.className = 'scrolling-container';
+                container.innerHTML =
+                    `<span>${commandSequence}</span>` +
+                    `<span>|</span>` +
+                    `<span>${commandSequence}</span>`;
+                commandText.innerHTML = '';
+                commandText.appendChild(container);
+
+                commandText.classList.add('scrolling');
+                commandWrapper.classList.add('scrolling');
+            } else {
+                // 非滚动：直接显示，不加 |
+                commandText.innerHTML = '';
+                commandText.textContent = commandSequence;
+                commandText.classList.remove('scrolling');
+                commandWrapper.classList.remove('scrolling');
+            }
+        }
+
+        function updateDisplay() {
+            if (!isResetting) checkScrollNeeded();
+        }
+
+        function setExecutingState(executing) {
+            isExecuting = executing;
+            if (executing) {
+                connectionStatus.textContent = '执行中';
+                connectionStatus.className = 'connection-status executing';
+                executionIndicator.classList.add('show');
+                commandText.classList.add('executing');
+                sendBtn.classList.add('executing', 'disabled');
+                sendBtn.textContent = '执行中';
+                dirButtons.forEach(btn => btn.classList.add('disabled'));
+                if (connectionCheckInterval) {
+                    clearInterval(connectionCheckInterval);
+                    connectionCheckInterval = null;
+                }
+            } else {
+                executionIndicator.classList.remove('show');
+                commandText.classList.remove('executing');
+                sendBtn.classList.remove('executing', 'disabled');
+                sendBtn.textContent = '发送';
+                dirButtons.forEach(btn => btn.classList.remove('disabled'));
+                connectionCheckInterval = setInterval(checkConnection, 1000);
+                setTimeout(() => {
+                    checkConnection();
+                    updateConnectionStatus();
+                }, 100);
+            }
+        }
+
+        async function sendCommand() {
+            if (commandSequence.length === 0) {
+                showMessage('请输入指令', 'error');
+                return;
+            }
+            if (isExecuting) {
+                showMessage('正在执行中，请稍候', 'error');
+                return;
+            }
+            let wasdCommand = commandSequence
+                .replace(/▲/g, 'W')
+                .replace(/▼/g, 'S')
+                .replace(/◀/g, 'A')
+                .replace(/▶/g, 'D');
+            setExecutingState(true);
+            try {
+                const response = await fetch('/exec', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        line_s: wasdCommand
+                    })
+                });
+                if (response.ok) {
+                    showMessage('指令已发送', 'success');
+                    await animateReset();
+                } else {
+                    showMessage('发送失败', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误', 'error');
+                console.error('发送失败:', error);
+            } finally {
+                setExecutingState(false);
+            }
+        }
+
+        async function animateReset() {
+            if (isResetting) return;
+            isResetting = true;
+            commandText.classList.add('resetting');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            commandSequence = '';
+            commandText.innerHTML = '';
+            commandText.classList.remove('resetting', 'scrolling');
+            commandWrapper.classList.remove('scrolling');
+            isResetting = false;
+            void commandWrapper.offsetHeight;
+        }
+
+        function resetCommand() {
+            if (isResetting || isExecuting) return;
+            animateReset();
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+        }
+
+        function showMessage(text, type = '') {
+            message.textContent = text;
+            message.className = 'message show ' + type;
+            setTimeout(() => message.classList.remove('show'), 2000);
+        }
+
+        async function checkConnection() {
+            if (isExecuting) return;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch('/test', {
+                    method: 'GET',
+                    cache: 'no-cache',
+                    signal: controller.signal,
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                clearTimeout(timeoutId);
+                if (response.ok) {
+                    let text = await response.text();
+                    let cleanText = text.trim().replace(/"/g, '');
+                    isConnected = cleanText === 'OK';
+                } else {
+                    isConnected = false;
+                }
+            } catch (error) {
+                isConnected = false;
+            }
+            updateConnectionStatus();
+        }
+
+        function updateConnectionStatus() {
+            if (isExecuting) return;
+            if (isConnected) {
+                connectionStatus.textContent = '已连接';
+                connectionStatus.className = 'connection-status connected';
+                if (lastConnectionStatus === 'disconnected') {
+                    showMessage('连接已恢复', 'success');
+                }
+            } else {
+                connectionStatus.textContent = '连接断开';
+                connectionStatus.className = 'connection-status disconnected';
+                if (lastConnectionStatus !== 'disconnected') {
+                    showMessage('连接断开', 'error');
+                }
+            }
+            lastConnectionStatus = isConnected ? 'connected' : 'disconnected';
+        }
+
+        function setupActionButton(btn, action) {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                btn.classList.add('touch-pressed');
+            });
+            btn.addEventListener('mouseup', () => {
+                btn.classList.remove('touch-pressed');
+                action();
+            });
+            btn.addEventListener('mouseleave', () => btn.classList.remove('touch-pressed'));
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                btn.classList.add('touch-pressed');
+            }, {
+                passive: false
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                btn.classList.remove('touch-pressed');
+                action();
+                e.stopPropagation();
+            }, {
+                passive: false
+            });
+            btn.addEventListener('touchcancel', () => btn.classList.remove('touch-pressed'), {
+                passive: false
+            });
+        }
+
+        setupActionButton(sendBtn, sendCommand);
+        setupActionButton(resetBtn, resetCommand);
+
+        document.addEventListener('keydown', (e) => {
+            if (isResetting || isExecuting) return;
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    e.preventDefault();
+                    addDirection('▲');
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    e.preventDefault();
+                    addDirection('▼');
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    e.preventDefault();
+                    addDirection('◀');
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    e.preventDefault();
+                    addDirection('▶');
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    sendCommand();
+                    break;
+                case 'Escape':
+                case 'Backspace':
+                    e.preventDefault();
+                    resetCommand();
+                    break;
+            }
+        });
+
+        connectionCheckInterval = setInterval(checkConnection, 1000);
+        checkConnection();
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) e.preventDefault();
+        }, {
+            passive: false
+        });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) e.preventDefault();
+            lastTouchEnd = now;
+        }, false);
+
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        window.addEventListener('load', () => showMessage('系统就绪', 'success'));
+        window.addEventListener('resize', () => {
+            if (commandSequence.length > 0 && !isResetting) checkScrollNeeded();
+        });
+    </script>
+</body>
+
+</html>
