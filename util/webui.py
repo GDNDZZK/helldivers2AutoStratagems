@@ -64,6 +64,14 @@ class FastAPIServer:
         async def index_html():
             return RedirectResponse(url="static/index.html")
 
+        @self.app.get("/webctl.html")
+        async def webctl():
+            return RedirectResponse(url="static/webctl.html")
+
+        @self.app.get("/webctl")
+        async def index_webctl():
+            return RedirectResponse(url="/webctl.html")
+
         @self.app.get("/favicon.ico")
         async def favicon():
             return RedirectResponse("static/favicon.ico")

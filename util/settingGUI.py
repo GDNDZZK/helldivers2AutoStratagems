@@ -8,7 +8,7 @@ from util.loadSetting import getConfigFilePath, saveConfigDict, getConfigDict, g
 from util.imageProcessing import capture_screenshot, crop_image, resize_image
 
 from PyQt6.QtWidgets import QApplication, QWidget, QDoubleSpinBox, QLabel, QPushButton, QTextEdit, QMessageBox, QCheckBox, QDialog, QVBoxLayout, QLineEdit
-from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices, QIcon
+from PyQt6.QtGui import QKeyEvent, QColor, QPainter, QBrush, QPen, QDesktopServices, QIcon, QGuiApplication
 from PyQt6.QtCore import Qt, QPoint, QUrl, QTimer, QObject, pyqtSignal
 
 keys = set()
@@ -672,6 +672,23 @@ class settingPanel(QWidget):
 
 
         x, y, w, h = int(self.size_x_spinbox.value()), int(self.size_y_spinbox.value()), int(self.size_w_spinbox.value()), int(self.size_h_spinbox.value())
+
+        # fix screen dpi scaling problem
+        if os.name == "nt":
+            point = QPoint(x, y)
+            screen = QGuiApplication.screenAt(point)
+            screen = self.windowHandle().screen()
+            # defensive fix
+            if screen is None:
+                QMessageBox.critical(self, 'QMessageBox', '无法获取当前屏幕信息？！\n将不会处理屏幕缩放因子所带来的影响', QMessageBox.StandardButton.Ok)
+                scale = 1.0
+            else:
+                scale = screen.devicePixelRatio()
+            x = round(x / scale)
+            y = round(y / scale)
+            w = round(w / scale)
+            h = round(h / scale)
+
         # make absolute position to window size
         w, h = w - x, h - y
 
@@ -695,6 +712,21 @@ class settingPanel(QWidget):
         #    x = point.x()
         #    y = point.y()
         #    print("wayland defensive fix, x value:"+ str(x) +" y value:"+ str(y))
+
+
+        # fix screen dpi scaling problem
+        if os.name == "nt":
+            screen = self.overlay_resize.windowHandle().screen()
+            # defensive fix
+            if screen is None:
+                QMessageBox.critical(self, 'QMessageBox', '无法获取当前屏幕信息？！\n将不会处理屏幕缩放因子所带来的影响', QMessageBox.StandardButton.Ok)
+                scale = 1.0
+            else:
+                scale = screen.devicePixelRatio()
+            x = round(x * scale)
+            y = round(y * scale)
+            w = round(w * scale)
+            h = round(h * scale)
 
         self.size_x_spinbox.setValue(x)
         self.size_y_spinbox.setValue(y)
